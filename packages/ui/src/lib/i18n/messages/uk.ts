@@ -863,6 +863,7 @@ export const dict: Record<I18nKey, string> = {
   "gitView.header.noIdentity": "Ідентичність не вибрано",
   "gitView.header.noProfiles": "Немає доступних профілів для застосування.",
   "gitView.header.repositoryViews": "Перегляди репозиторію",
+  "gitView.repositories.title": "РЕПОЗИТОРІЇ",
   "gitView.header.updateBranch": "Оновити гілку",
   "gitView.header.openPullRequest": "Відкрити pull request",
   "gitView.header.removeRemoteAria": "Видалити remote",

@@ -863,6 +863,7 @@ export const dict: Record<I18nKey, string> = {
   'gitView.header.noIdentity': '인증 정보 없음',
   'gitView.header.noProfiles': '적용할 프로필 없음',
   'gitView.header.repositoryViews': '저장소 보기',
+  'gitView.repositories.title': '저장소',
   'gitView.header.updateBranch': '브랜치 업데이트',
   'gitView.header.openPullRequest': '풀 리퀘스트 열기',
   'gitView.header.removeRemoteAria': '리모트 제거',

@@ -685,6 +685,7 @@ export const dict = {
   'gitView.header.noIdentity': 'Aucune identité',
   'gitView.header.noProfiles': 'Aucun profil disponible à appliquer.',
   'gitView.header.repositoryViews': 'Vues du dépôt',
+  'gitView.repositories.title': 'DÉPÔTS',
   'gitView.header.updateBranch': 'Mettre à jour la branche',
   'gitView.header.openPullRequest': 'Ouvrir la pull request',
   'gitView.header.removeRemoteAria': 'Supprimer le remote',

@@ -2205,6 +2205,7 @@ export const dict: Record<I18nKey, string> = {
   'gitView.header.noIdentity': 'No identity',
   'gitView.header.noProfiles': 'No profiles available to apply.',
   'gitView.header.repositoryViews': 'Widoki repozytorium',
+  'gitView.repositories.title': 'REPOZYTORIA',
   'gitView.header.updateBranch': 'Zaktualizuj gałąź',
   'gitView.header.openPullRequest': 'Otwórz pull request',
   'gitView.header.removeRemoteAria': 'Usuń remote {name}',

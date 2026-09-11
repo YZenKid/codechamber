@@ -876,6 +876,7 @@ export const dict: Record<I18nKey, string> = {
   'gitView.header.noIdentity': '無身分',
   'gitView.header.noProfiles': '沒有可套用的設定。',
   'gitView.header.repositoryViews': '儲存庫檢視',
+  'gitView.repositories.title': '儲存庫',
   'gitView.header.updateBranch': '更新分支',
   'gitView.header.openPullRequest': '開啟提取請求',
   'gitView.header.removeRemoteAria': '移除遠端 {name}',

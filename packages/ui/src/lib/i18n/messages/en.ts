@@ -862,6 +862,7 @@ export const dict = {
   'gitView.header.noIdentity': 'No identity',
   'gitView.header.noProfiles': 'No profiles available to apply.',
   'gitView.header.repositoryViews': 'Repository views',
+  'gitView.repositories.title': 'REPOSITORIES',
   'gitView.header.updateBranch': 'Update branch',
   'gitView.header.openPullRequest': 'Open pull request',
   'gitView.header.removeRemoteAria': 'Remove remote {name}',

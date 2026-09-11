@@ -846,6 +846,7 @@ export const dict = {
   'gitView.header.noIdentity': 'Kimlik yok',
   'gitView.header.noProfiles': 'Uygulanabilir profil yok.',
   'gitView.header.repositoryViews': 'Repository görünümleri',
+  'gitView.repositories.title': 'DEPOLAR',
   'gitView.header.updateBranch': 'Branch\'i güncelle',
   'gitView.header.openPullRequest': 'Pull request aç',
   'gitView.header.removeRemoteAria': '{name} remote\'unu kaldır',

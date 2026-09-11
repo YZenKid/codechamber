@@ -763,6 +763,7 @@ export const dict = {
   'gitView.header.noIdentity': 'Keine Identität',
   'gitView.header.noProfiles': 'Keine Profile zum Anwenden verfügbar.',
   'gitView.header.repositoryViews': 'Repository-Ansichten',
+  'gitView.repositories.title': 'REPOSITORIEN',
   'gitView.header.removeRemoteAria': 'Entferne Remote {name}',
   'gitView.header.removeRemoteTitle': 'Entferne Remote {name}',
   'gitView.header.upstreamSynced': 'synchronisiert',

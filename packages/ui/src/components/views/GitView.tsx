@@ -22,6 +22,7 @@ import {
 import { useNestedGitDirectory } from '@/hooks/useNestedGitDirectory';
 import { useWorktreeBootstrapPending } from '@/hooks/useWorktreeBootstrapPending';
 import { NestedRepoResolutionStates } from './git/NestedRepoResolutionStates';
+import { GitRepositoriesPanel } from './git/GitRepositoriesPanel';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { ScrollShadow } from '@/components/ui/ScrollShadow';
 import { toast } from '@/components/ui';
@@ -293,6 +294,7 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
   const {
     setActiveDirectory,
     ensureAll,
+    ensureStatus,
     fetchStatus,
     fetchBranches,
     fetchLog,
@@ -308,6 +310,7 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
   } = useGitStore(useShallow((state) => ({
     setActiveDirectory: state.setActiveDirectory,
     ensureAll: state.ensureAll,
+    ensureStatus: state.ensureStatus,
     fetchStatus: state.fetchStatus,
     fetchBranches: state.fetchBranches,
     fetchLog: state.fetchLog,
@@ -934,6 +937,11 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
       void ensureAll(gitDirectory, git);
     }
   }, [isActive, currentDirectory, gitDirectory, setActiveDirectory, ensureAll, git]);
+
+  React.useEffect(() => {
+    if (!isActive || rootIsGitRepo !== false || !Array.isArray(nestedRepos)) return;
+    void Promise.all(nestedRepos.map((repository) => ensureStatus(repository, git)));
+  }, [ensureStatus, git, isActive, nestedRepos, rootIsGitRepo]);
 
   React.useEffect(() => {
     if (!isActive) return;
@@ -2462,6 +2470,15 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
 
   return (
     <div className={cn('flex h-full flex-col overflow-hidden')}>
+      {currentDirectory && rootIsGitRepo === false && Array.isArray(nestedRepos) ? (
+        <GitRepositoriesPanel
+          repositories={nestedRepos}
+          repositoryRoot={currentDirectory}
+          selectedRepository={gitDirectory}
+          onSelectRepository={(repository) => selectNestedRepo(currentDirectory, repository)}
+        />
+      ) : null}
+
            <GitHeader
         directory={gitDirectory ?? ''}
         status={status}
@@ -2492,16 +2509,6 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
             onOpenPullRequest={
               gitDirectory ? () => openContextSurface(gitDirectory, 'pr') : undefined
             }
-            repositoryOptions={
-              gitDirectory !== currentDirectory && Array.isArray(nestedRepos) ? nestedRepos : undefined
-            }
-            selectedRepository={gitDirectory !== currentDirectory ? gitDirectory : null}
-            onSelectRepository={
-              gitDirectory !== currentDirectory && currentDirectory
-                ? (repository) => selectNestedRepo(currentDirectory, repository)
-                : undefined
-            }
-            repositoryRoot={gitDirectory !== currentDirectory ? currentDirectory : undefined}
           />
 
       {/* In-progress operation banner */}
@@ -2532,7 +2539,7 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
               preventOverscroll
             >
               <div className="flex h-full min-h-0 flex-col gap-3">
-                  {(changeEntries?.length ?? 0) > 0 ? (
+                {(changeEntries?.length ?? 0) > 0 ? (
                     <>
                       <div className="min-h-0 flex-1 overflow-hidden">
                         <ChangesPanel

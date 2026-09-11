@@ -860,6 +860,7 @@ export const dict: Record<I18nKey, string> = {
   'gitView.header.noIdentity': 'IDがありません',
   'gitView.header.noProfiles': '適用できるプロファイルがありません。',
   'gitView.header.repositoryViews': 'リポジトリビュー',
+  'gitView.repositories.title': 'リポジトリ',
   'gitView.header.updateBranch': 'ブランチを更新',
   'gitView.header.openPullRequest': 'プルリクエストを開く',
   'gitView.header.removeRemoteAria': 'リモート{name}を削除',

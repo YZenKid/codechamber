@@ -863,6 +863,7 @@ export const dict: Record<I18nKey, string> = {
   'gitView.header.noIdentity': '无身份',
   'gitView.header.noProfiles': '没有可应用的配置。',
   'gitView.header.repositoryViews': '仓库视图',
+  'gitView.repositories.title': '仓库',
   'gitView.header.updateBranch': '更新分支',
   'gitView.header.openPullRequest': '打开拉取请求',
   'gitView.header.removeRemoteAria': '移除远程 {name}',
