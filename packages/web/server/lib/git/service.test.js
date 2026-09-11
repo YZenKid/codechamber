@@ -29,6 +29,7 @@ import {
   resolvePrimaryWorktreeRoot,
   resolveWorktreeTopLevel,
   resetToCommit,
+  undoLastUnpushedCommit,
   resolveBaseRefForLog,
   revertCommit,
   setLocalIdentity,
@@ -1753,6 +1754,62 @@ describe('resetToCommit', () => {
     expect(log.latest.hash).toBe(firstCommit.commit);
     const content = await fs.promises.readFile(filePath, 'utf8');
     expect(content).toBe('first\n');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// undoLastUnpushedCommit
+// ---------------------------------------------------------------------------
+
+describe('undoLastUnpushedCommit', () => {
+  const createTrackedRepository = () => {
+    const remote = createTempDir();
+    const repository = createTempDir();
+    runGit(remote, ['init', '--bare', '--initial-branch=main']);
+    runGit(repository, ['init', '-b', 'main']);
+    runGit(repository, ['config', 'user.email', 'test@example.com']);
+    runGit(repository, ['config', 'user.name', 'Test']);
+    fs.writeFileSync(path.join(repository, 'file.txt'), 'first\n');
+    runGit(repository, ['add', 'file.txt']);
+    runGit(repository, ['commit', '-m', 'First commit']);
+    runGit(repository, ['remote', 'add', 'origin', remote]);
+    runGit(repository, ['push', '-u', 'origin', 'main']);
+    return repository;
+  };
+
+  it('soft resets only last local commit and leaves its changes staged', async () => {
+    const repository = createTrackedRepository();
+    const firstCommit = runGit(repository, ['rev-parse', 'HEAD']).trim();
+    fs.writeFileSync(path.join(repository, 'file.txt'), 'second\n');
+    runGit(repository, ['add', 'file.txt']);
+    runGit(repository, ['commit', '-m', 'Second commit']);
+
+    await expect(undoLastUnpushedCommit(repository)).resolves.toEqual({ success: true });
+    expect(runGit(repository, ['rev-parse', 'HEAD']).trim()).toBe(firstCommit);
+    expect(runGit(repository, ['diff', '--cached', '--name-only']).trim()).toBe('file.txt');
+    expect(fs.readFileSync(path.join(repository, 'file.txt'), 'utf8')).toBe('second\n');
+  });
+
+  it('rejects when current branch has no upstream', async () => {
+    const { tmpDir, git } = await createTempRepo();
+    await fs.promises.writeFile(path.join(tmpDir, 'file.txt'), 'first\n');
+    await git.add('file.txt');
+    await git.commit('First commit');
+
+    await expect(undoLastUnpushedCommit(tmpDir)).rejects.toThrow('Current branch has no upstream');
+  });
+
+  it('rejects when current branch has no commits ahead of upstream', async () => {
+    const repository = createTrackedRepository();
+
+    await expect(undoLastUnpushedCommit(repository)).rejects.toThrow('Current branch has no unpushed commits');
+  });
+
+  it('rejects while a merge is in progress', async () => {
+    const repository = createTrackedRepository();
+    fs.writeFileSync(path.join(repository, '.git', 'MERGE_HEAD'), '0'.repeat(40));
+
+    await expect(undoLastUnpushedCommit(repository)).rejects.toThrow('Cannot undo commit while merge is in progress');
   });
 });
 

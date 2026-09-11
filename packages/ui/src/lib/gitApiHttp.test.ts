@@ -28,6 +28,7 @@ import {
   renameBranch,
   resetToCommit,
   revertCommit,
+  undoLastUnpushedCommit,
   stageGitFile,
   stageGitFiles,
   stashGitChanges,
@@ -471,6 +472,21 @@ describe('gitApiHttp post-mutation status invalidation (#2281)', () => {
       await expectStatusInvalidatedBy('/repo-2281-cherry-pick', () => cherryPick('/repo-2281-cherry-pick', 'abc123'));
       await expectStatusInvalidatedBy('/repo-2281-revert-commit', () => revertCommit('/repo-2281-revert-commit', 'abc123'));
       await expectStatusInvalidatedBy('/repo-2281-reset', () => resetToCommit('/repo-2281-reset', 'abc123', 'mixed'));
+      await expectStatusInvalidatedBy('/repo-2281-undo', () => undoLastUnpushedCommit('/repo-2281-undo'));
+    } finally {
+      restoreMocks();
+    }
+  });
+
+  test('undo last unpushed commit posts to its route', async () => {
+    installWindowMock();
+    const calls = installFetchMock();
+    try {
+      await undoLastUnpushedCommit('/repo-undo');
+
+      expect(calls).toHaveLength(1);
+      expect(String(calls[0].input)).toBe('/api/git/undo-last-unpushed-commit?directory=%2Frepo-undo');
+      expect(calls[0].init?.method).toBe('POST');
     } finally {
       restoreMocks();
     }

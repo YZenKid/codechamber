@@ -7,6 +7,7 @@ const gitService = {
   cherryPick: mock(),
   revertCommit: mock(),
   resetToCommit: mock(),
+  undoLastUnpushedCommit: mock(),
   createWorktree: mock(),
   getWorktreeBootstrapStatus: mock(),
 };
@@ -23,6 +24,7 @@ describe('bridge git runtime index mutations', () => {
     gitService.cherryPick.mockReset();
     gitService.revertCommit.mockReset();
     gitService.resetToCommit.mockReset();
+    gitService.undoLastUnpushedCommit.mockReset();
     gitService.createWorktree.mockReset();
     gitService.getWorktreeBootstrapStatus.mockReset();
   });
@@ -112,6 +114,24 @@ describe('bridge git runtime index mutations', () => {
     expect(gitService.cherryPick).not.toHaveBeenCalled();
     expect(gitService.revertCommit).not.toHaveBeenCalled();
     expect(gitService.resetToCommit).not.toHaveBeenCalled();
+  });
+
+  it('undoes the last unpushed commit from directory only', async () => {
+    gitService.undoLastUnpushedCommit.mockResolvedValue({ success: true });
+
+    const response = await handleStandardGitBridgeMessage({
+      id: 'undo-unpushed',
+      type: 'api:git/undo-last-unpushed-commit',
+      payload: { directory: '/repo', hash: 'untrusted-renderer-value' },
+    });
+
+    expect(response).toEqual({
+      id: 'undo-unpushed',
+      type: 'api:git/undo-last-unpushed-commit',
+      success: true,
+      data: { success: true },
+    });
+    expect(gitService.undoLastUnpushedCommit).toHaveBeenCalledWith('/repo');
   });
 
   it('preserves bootstrap phases in status responses', async () => {

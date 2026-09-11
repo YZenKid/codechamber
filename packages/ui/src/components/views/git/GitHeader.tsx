@@ -51,6 +51,7 @@ interface GitHeaderProps {
   onOpenStashes?: () => void;
   onOpenUpdateBranch?: () => void;
   onOpenReintegrateCommits?: () => void;
+  onUndoLastUnpushedCommit?: () => void;
   pullRequest?: GitHubPullRequest | null;
   prChecks?: GitHubChecksSummary | null;
   onOpenPullRequest?: () => void;
@@ -266,6 +267,7 @@ export const GitHeader: React.FC<GitHeaderProps> = ({
   onOpenStashes,
   onOpenUpdateBranch,
   onOpenReintegrateCommits,
+  onUndoLastUnpushedCommit,
   pullRequest,
   prChecks,
   onOpenPullRequest,
@@ -281,10 +283,18 @@ export const GitHeader: React.FC<GitHeaderProps> = ({
   }
 
   const repositoryOptionsForPicker = (repositoryOptions ?? []).filter(Boolean);
+  const canUndoLastUnpushedCommit = Boolean(
+    onUndoLastUnpushedCommit
+      && status.tracking
+      && status.ahead > 0
+      && !status.mergeInProgress
+      && !status.rebaseInProgress
+      && !status.attentionReason
+  );
 
   const managementButtons = (
     <div className="flex items-center gap-1 shrink-0">
-      {onOpenHistory || onOpenGraph || onOpenStashes || onOpenUpdateBranch ? (
+      {onOpenHistory || onOpenGraph || onOpenStashes || onOpenUpdateBranch || onOpenReintegrateCommits || canUndoLastUnpushedCommit ? (
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -330,6 +340,12 @@ export const GitHeader: React.FC<GitHeaderProps> = ({
               <DropdownMenuItem onSelect={onOpenReintegrateCommits}>
                 <Icon name="split-cells-horizontal" className="size-4" />
                 {t('gitView.integrate.title')}
+              </DropdownMenuItem>
+            ) : null}
+            {canUndoLastUnpushedCommit ? (
+              <DropdownMenuItem onSelect={onUndoLastUnpushedCommit}>
+                <Icon name="arrow-go-back" className="size-4" />
+                {t('gitView.undoLastUnpushedCommit.menuItem')}
               </DropdownMenuItem>
             ) : null}
           </DropdownMenuContent>

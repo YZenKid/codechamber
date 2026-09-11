@@ -4015,6 +4015,52 @@ export async function revertCommit(directory, hash) {
   }
 }
 
+const getGitOperationInProgress = async (repoRoot, git) => {
+  const operations = [
+    ['merge', 'MERGE_HEAD'],
+    ['rebase', 'rebase-merge'],
+    ['rebase', 'rebase-apply'],
+    ['cherry-pick', 'CHERRY_PICK_HEAD'],
+    ['revert', 'REVERT_HEAD'],
+    ['bisect', 'BISECT_LOG'],
+  ];
+
+  for (const [operation, gitPath] of operations) {
+    const internalPath = await resolveGitInternalPath(repoRoot, git, gitPath).catch(() => '');
+    if (internalPath && await fsp.stat(internalPath).then(() => true).catch(() => false)) {
+      return operation;
+    }
+  }
+
+  return null;
+};
+
+export async function undoLastUnpushedCommit(directory) {
+  return withGitIndexMutationQueue(directory, async () => {
+    const { repoRoot, git } = await createRepositoryGitContext(directory);
+    const operation = await getGitOperationInProgress(repoRoot, git);
+    if (operation) {
+      throw new Error(`Cannot undo commit while ${operation} is in progress`);
+    }
+
+    const upstream = await git.raw(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'])
+      .then((value) => value.trim())
+      .catch(() => '');
+    if (!upstream) {
+      throw new Error('Current branch has no upstream; push first or configure an upstream');
+    }
+
+    const ahead = await git.raw(['rev-list', '--count', '@{u}..HEAD'])
+      .then((value) => Number.parseInt(value.trim(), 10));
+    if (!Number.isFinite(ahead) || ahead <= 0) {
+      throw new Error('Current branch has no unpushed commits');
+    }
+
+    await git.raw(['reset', '--soft', 'HEAD^']);
+    return { success: true };
+  });
+}
+
 export async function resetToCommit(directory, hash, mode, force = false) {
   if (!isValidCommitHash(hash)) {
     throw new Error('Invalid commit hash');

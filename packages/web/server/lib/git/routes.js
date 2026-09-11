@@ -1085,6 +1085,21 @@ export function registerGitRoutes(app, { emitWorktreeChanged } = {}) {
     }
   });
 
+  app.post('/api/git/undo-last-unpushed-commit', async (req, res) => {
+    const { undoLastUnpushedCommit } = await getGitLibraries();
+    try {
+      const directory = req.query.directory;
+      if (!directory) {
+        return res.status(400).json({ error: 'directory parameter is required' });
+      }
+      const result = await undoLastUnpushedCommit(directory);
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to undo last unpushed commit:', error);
+      res.status(500).json({ error: error.message || 'Failed to undo commit' });
+    }
+  });
+
   app.get('/api/git/worktrees', async (req, res) => {
     const { getWorktrees, observeWorktreeTopology } = await getGitLibraries();
     try {

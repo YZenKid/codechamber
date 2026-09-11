@@ -499,6 +499,15 @@ export async function handleStandardGitBridgeMessage(message: BridgeMessageInput
       return { id, type, success: true, data: result };
     }
 
+    case 'api:git/undo-last-unpushed-commit': {
+      // SAFETY: Route reads only directory; requireDirectory blocks missing values before Git service.
+      const { directory } = (payload || {}) as { directory?: string };
+      const dirError = requireDirectory(id, type, directory);
+      if (dirError) return dirError;
+      const result = await gitService.undoLastUnpushedCommit(directory!);
+      return { id, type, success: true, data: result };
+    }
+
     case 'api:git/log': {
       const { directory, maxCount, from, to, file, all } = (payload || {}) as {
         directory?: string;

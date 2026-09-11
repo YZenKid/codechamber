@@ -80,6 +80,7 @@ bootstrap, tracking is left unset rather than writing `branch.*.remote` /
 - `fetch(directory, options)`: Fetch changes from remote.
 - `removeRemote(directory, options)`: Remove a configured remote (except `origin`).
 - `deleteRemoteBranch(directory, options)`: Delete a remote branch.
+- `undoLastUnpushedCommit(directory)`: Soft-reset only `HEAD`'s last commit after resolving the current branch upstream and confirming `@{u}..HEAD` has commits. The commit's changes remain staged and working-tree content is preserved. It rejects branches without an upstream, branches not ahead of upstream, and merge, rebase, cherry-pick, revert, or bisect state. Exposed as `POST /api/git/undo-last-unpushed-commit?directory=...`.
 
 ### Log Operations
 - `getLog(directory, options)`: Get commit history with stats (supports maxCount, from, to, file filters).

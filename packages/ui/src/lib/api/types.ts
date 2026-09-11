@@ -604,6 +604,7 @@ export interface GitAPI {
   cherryPick(directory: string, hash: string): Promise<CherryPickResponse>;
   revertCommit(directory: string, hash: string): Promise<RevertCommitResponse>;
   resetToCommit(directory: string, hash: string, mode: 'soft' | 'mixed' | 'hard', force?: boolean): Promise<ResetToCommitResponse>;
+  undoLastUnpushedCommit?(directory: string): Promise<ResetToCommitResponse>;
   stash(directory: string, options?: { message?: string; includeUntracked?: boolean }): Promise<{ success: boolean }>;
   stashPop(directory: string): Promise<{ success: boolean }>;
   getConflictDetails(directory: string): Promise<MergeConflictDetails>;

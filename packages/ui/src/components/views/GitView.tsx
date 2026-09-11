@@ -605,6 +605,9 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
   const actionPanelScrollRef = React.useRef<HTMLElement | null>(null);
   const [syncAction, setSyncAction] = React.useState<SyncAction>(null);
   const [isStashesDialogOpen, setIsStashesDialogOpen] = React.useState(false);
+  const [isUndoLastUnpushedCommitDialogOpen, setIsUndoLastUnpushedCommitDialogOpen] = React.useState(false);
+  const undoLastUnpushedCommitSubmittingRef = React.useRef(false);
+  const [isUndoLastUnpushedCommitSubmitting, setIsUndoLastUnpushedCommitSubmitting] = React.useState(false);
   const [commitAction, setCommitAction] = React.useState<CommitAction>(null);
   const [logMaxCountLocal, setLogMaxCountLocal] = React.useState<number>(25);
   const [isSettingIdentity, setIsSettingIdentity] = React.useState(false);
@@ -984,6 +987,39 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
     if (!gitDirectory) return;
     await fetchLog(gitDirectory, git, logMaxCountLocal);
   }, [gitDirectory, git, fetchLog, logMaxCountLocal]);
+
+  const handleUndoLastUnpushedCommit = React.useCallback(async () => {
+    if (!gitDirectory || undoLastUnpushedCommitSubmittingRef.current) {
+      return;
+    }
+
+    const undoLastUnpushedCommit = git.undoLastUnpushedCommit;
+    if (!undoLastUnpushedCommit) {
+      toast.error(t('gitView.toast.syncActionFailed', { action: t('gitView.undoLastUnpushedCommit.menuItem') }));
+      return;
+    }
+
+    undoLastUnpushedCommitSubmittingRef.current = true;
+    setIsUndoLastUnpushedCommitSubmitting(true);
+    try {
+      await undoLastUnpushedCommit(gitDirectory);
+      setIsUndoLastUnpushedCommitDialogOpen(false);
+      toast.success(t('gitView.undoLastUnpushedCommit.success'));
+      await refreshStatusAndBranches(false);
+      await refreshLog();
+      setIntegrateRefreshKey((value) => value + 1);
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : t('gitView.toast.syncActionFailed', { action: t('gitView.undoLastUnpushedCommit.menuItem') });
+      toast.error(message);
+    } finally {
+      undoLastUnpushedCommitSubmittingRef.current = false;
+      if (mountedRef.current) {
+        setIsUndoLastUnpushedCommitSubmitting(false);
+      }
+    }
+  }, [git, gitDirectory, refreshLog, refreshStatusAndBranches, t]);
 
   const refreshIdentity = React.useCallback(async () => {
     if (!gitDirectory) return;
@@ -2504,6 +2540,9 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
             onOpenStashes={openStashes}
             onOpenUpdateBranch={canShowBranchWorkflows ? () => setIsUpdateBranchDialogOpen(true) : undefined}
             onOpenReintegrateCommits={integrateCommitsProps ? () => setIsIntegrateCommitsDialogOpen(true) : undefined}
+            onUndoLastUnpushedCommit={git.undoLastUnpushedCommit
+              ? () => setIsUndoLastUnpushedCommitDialogOpen(true)
+              : undefined}
             pullRequest={prChipStatus?.pr ?? null}
             prChecks={prChipStatus?.checks ?? null}
             onOpenPullRequest={
@@ -2708,6 +2747,42 @@ export const GitView: React.FC<GitViewProps> = ({ isActive }) => {
               onConflict={gitLogDialogMode === 'graph' ? handleGraphConflict : undefined}
               onActionSuccess={gitLogDialogMode === 'graph' ? handleGraphActionSuccess : undefined}
             />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isUndoLastUnpushedCommitDialogOpen}
+        onOpenChange={(open) => {
+          if (isUndoLastUnpushedCommitSubmitting) {
+            return;
+          }
+          setIsUndoLastUnpushedCommitDialogOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('gitView.undoLastUnpushedCommit.title')}</DialogTitle>
+            <DialogDescription>{t('gitView.undoLastUnpushedCommit.description')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsUndoLastUnpushedCommitDialogOpen(false)}
+              disabled={isUndoLastUnpushedCommitSubmitting}
+            >
+              {t('gitView.common.close')}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void handleUndoLastUnpushedCommit()}
+              disabled={isUndoLastUnpushedCommitSubmitting}
+            >
+              {isUndoLastUnpushedCommitSubmitting ? <Icon name="loader-4" className="size-4 animate-spin" /> : null}
+              {t('gitView.undoLastUnpushedCommit.confirm')}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

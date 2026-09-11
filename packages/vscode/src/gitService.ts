@@ -3774,6 +3774,56 @@ export async function resetToCommit(
   return { success: true };
 }
 
+async function hasGitOperationInProgress(directory: string): Promise<boolean> {
+  const mergeHead = await execGit(['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'], directory);
+  if (mergeHead.exitCode === 0) {
+    return true;
+  }
+
+  const gitPaths = await Promise.all([
+    execGit(['rev-parse', '--git-path', 'rebase-merge'], directory),
+    execGit(['rev-parse', '--git-path', 'rebase-apply'], directory),
+    execGit(['rev-parse', '--git-path', 'CHERRY_PICK_HEAD'], directory),
+    execGit(['rev-parse', '--git-path', 'REVERT_HEAD'], directory),
+    execGit(['rev-parse', '--git-path', 'BISECT_LOG'], directory),
+  ]);
+  return Promise.all(gitPaths.map(async (result) => {
+    if (result.exitCode !== 0 || !result.stdout.trim()) {
+      return false;
+    }
+    const gitPath = result.stdout.trim();
+    return fs.promises.stat(path.isAbsolute(gitPath) ? gitPath : path.resolve(directory, gitPath))
+      .then(() => true)
+      .catch(() => false);
+  })).then((states) => states.some(Boolean));
+}
+
+export async function undoLastUnpushedCommit(directory: string): Promise<{ success: boolean }> {
+  const upstream = await execGit(['rev-parse', '--verify', '--quiet', '@{u}'], directory);
+  if (upstream.exitCode !== 0) {
+    throw new Error('Current branch has no upstream');
+  }
+
+  const unpushedCount = await execGit(['rev-list', '--count', '@{u}..HEAD'], directory);
+  const count = Number.parseInt(unpushedCount.stdout.trim(), 10);
+  if (unpushedCount.exitCode !== 0 || !Number.isFinite(count)) {
+    throw new Error(unpushedCount.stderr || 'Failed to count unpushed commits');
+  }
+  if (count <= 0) {
+    throw new Error('Current branch has no unpushed commits');
+  }
+
+  if (await hasGitOperationInProgress(directory)) {
+    throw new Error('Cannot undo commit while a Git operation is in progress');
+  }
+
+  const result = await execGit(['reset', '--soft', 'HEAD^'], directory);
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || 'Failed to undo last unpushed commit');
+  }
+  return { success: true };
+}
+
 // ============== Worktree Validation & Canonicalization ==============
 
 /**

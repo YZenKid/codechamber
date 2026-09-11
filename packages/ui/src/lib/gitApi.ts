@@ -1144,6 +1144,19 @@ export async function resetToCommit(
   return gitHttp.resetToCommit(directory, hash, mode, force);
 }
 
+export async function undoLastUnpushedCommit(
+  directory: string
+): Promise<import('./api/types').ResetToCommitResponse> {
+  const runtime = getRuntimeGit();
+  if (runtime) {
+    if (!runtime.undoLastUnpushedCommit) {
+      throw new Error('Undo last unpushed commit is not supported by this runtime');
+    }
+    return runtimeStatusMutation(directory, runtime.undoLastUnpushedCommit(directory));
+  }
+  return gitHttp.undoLastUnpushedCommit(directory);
+}
+
 export async function abortMerge(directory: string): Promise<{ success: boolean }> {
   const runtime = getRuntimeGit();
   if (runtime) return runtimeStatusMutation(directory, runtime.abortMerge(directory));

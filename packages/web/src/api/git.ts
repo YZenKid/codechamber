@@ -73,6 +73,7 @@ export const createWebGitAPI = (): GitAPI => ({
   cherryPick: gitApiHttp.cherryPick,
   revertCommit: gitApiHttp.revertCommit,
   resetToCommit: gitApiHttp.resetToCommit,
+  undoLastUnpushedCommit: gitApiHttp.undoLastUnpushedCommit,
   stash: gitApiHttp.stash,
   stashPop: gitApiHttp.stashPop,
   getConflictDetails: gitApiHttp.getConflictDetails,

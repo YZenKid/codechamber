@@ -1253,6 +1253,17 @@ export async function resetToCommit(
   return completeStatusMutation(directory, response);
 }
 
+export async function undoLastUnpushedCommit(directory: string): Promise<ResetToCommitResponse> {
+  const response = await runtimeFetch(buildUrl(`${API_BASE}/undo-last-unpushed-commit`, directory), {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || 'Failed to undo last unpushed commit');
+  }
+  return completeStatusMutation(directory, response);
+}
+
 export async function abortMerge(directory: string): Promise<{ success: boolean }> {
   const response = await runtimeFetch(buildUrl(`${API_BASE}/merge/abort`, directory), {
     method: 'POST',

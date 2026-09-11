@@ -451,6 +451,10 @@ export const createVSCodeGitAPI = (): GitAPI => ({
     return sendBridgeMessage<ResetToCommitResponse>('api:git/reset-to-commit', { directory, hash, mode, force });
   },
 
+  undoLastUnpushedCommit: async (directory: string): Promise<{ success: boolean }> => {
+    return sendBridgeMessage<{ success: boolean }>('api:git/undo-last-unpushed-commit', { directory });
+  },
+
   stash: async (
     directory: string,
     options?: { message?: string; includeUntracked?: boolean }
