@@ -107,6 +107,8 @@ which requests only providers enabled for this panel.
 | Turn stats | `telemetry.ts` over `useSessionMessageRecords` | computed only while expanded and authoritatively idle; either rate above 5,000 tok/s is reported as unknown (see the two-rate description below) |
 | Goal | `useSessionGoal` | respects the Settings toggle |
 | MCP | `useMcpStore` | connect/disconnect reuses the dropdown's actions |
+| Skills | `useSkillsStore` scoped to the panel directory | lists skills loaded for this project |
+| LSP | directory `state.lsp` | bootstrap plus `lsp.updated` own authoritative status; no panel request or fallback |
 | Pinned messages | `getContextObligatoryMessages` + `state.part` | see below |
 | Todos | live `state.todo[sessionId]`, persisted fallback | live channel wins |
 
@@ -240,7 +242,7 @@ The default order is by durability:
    is open. Usage sits here rather than lower down because a spent quota stops the
    work outright;
 2. **Subagents**, **Tasks** — what is happening right now;
-3. **MCP**, **Pinned messages**, **Context sources** — supporting material.
+3. **MCP**, **Pinned messages**, **Context sources**, **Skills** — supporting material.
 
 The sections dialog has drag handles for changing this order, including hidden
 sections. A drop updates the panel immediately. `workStatusSectionOrder` is a
@@ -304,7 +306,13 @@ another's shorter panel lands somewhere arbitrary.
 
 The Subagents section opens itself when subagents appear where there were none,
 on that edge only: re-expanding on every count change would fight a user who
-just collapsed it.
+just collapsed it. Collapsed, it keeps its heading and child count plus one
+compact child row when attention or live activity exists. The preview candidate
+is first child needing permission, then first child with a question, then first
+working child, each in agent order. No candidate leaves heading and summary
+only. A child row itself keeps the same precedence: permission, question,
+working, then done. Both the row state and `working/total` summary count derive
+live activity from authoritative `busy` or `retry` status.
 
 Its expanded list is capped at eight rows and scrolls independently, so a
 session with many subagents does not crowd every section below it out of the
@@ -330,6 +338,15 @@ pending-only and all-completed lists, it shows no preview row. Live updates
 replace the preview without expanding the section. An authoritative empty todo
 list clears the section rather than restoring old persisted tasks; persistence
 is used only while the scoped live list is missing.
+
+## LSP
+
+LSP reads the active directory's authoritative `state.lsp` sync slice. It makes
+no request and keeps no fallback: bootstrap and `lsp.updated` events own that
+state, and an empty list removes the section. The heading summarizes connected
+servers against total servers. Expanded rows show server names and localized
+connected/error states with semantic status colors. Server roots stay hidden at
+this panel width.
 
 ## Collapsed Usage headline
 
@@ -386,7 +403,9 @@ a tab.
 
 ## Context sources
 
-Linked GitHub threads first, then skills and MCP counts.
+Linked GitHub and Linear threads first, then session-pinned notes and plans,
+and agent-memory count. MCP has its own section, and skills are listed in their
+own directory-scoped Skills section.
 
 Agents are deliberately absent: an agent is who does the work, not material
 loaded into the context. Tools are absent too — `Agent.tools` is a per-agent
@@ -428,10 +447,9 @@ the matching header dropdown:
 - **Usage** — `useQuotaAutoRefresh` schedules the shared fixed three-minute
   refresh; the *first* fetch was performed by the dropdown's open handler.
 - **Skills** — `loadSkills()` ran only when the composer's slash autocomplete
-  opened, so the context-sources count was whatever happened to be cached. The
-  section loads them itself, keyed on the directory, since skills are
-  discovered relative to the active project. It does not wrap the call in
-  `runBackgroundNetworkTask`: the store already gates its own fetch.
+  opened. The dedicated section loads them itself, keyed on the panel directory,
+  since skills are discovered relative to the selected project. It does not wrap
+  the call in `runBackgroundNetworkTask`: the store already gates its own fetch.
 
 Usage waits for the instance to say it is initialised. Quota providers report
 themselves as configured only once the instance can read their credentials,
@@ -486,5 +504,5 @@ animation frame.
 
 ## Not implemented yet
 
-- Test/build/dev-server status and LSP diagnostics — a separate track. Note
-  that `state.lsp` already exists in the sync state.
+- Test/build/dev-server status and richer LSP error details remain separate
+  tracks.

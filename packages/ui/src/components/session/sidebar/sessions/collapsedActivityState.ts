@@ -96,3 +96,18 @@ export const useCollapsedSessionActivityState = ({
   }, [enabled, ids.unread]));
   return active ?? unread;
 };
+
+/**
+ * Whether a session row should read as active because a subagent below it is
+ * running. A parent whose own turn settled is reported idle by the live status
+ * index, so without this rollup its dot disappears while work continues in its
+ * subtree. Scalar on purpose: the row re-renders when that fact flips, not on
+ * every status publication.
+ */
+export const useSessionSubtreeActive = (
+  sessionIds: readonly string[],
+  enabled: boolean,
+): boolean => useGlobalSessionStatusStore(React.useCallback(
+  (state) => enabled && sessionIds.some((sessionId) => state.activeSessionIds.has(sessionId)),
+  [enabled, sessionIds],
+));

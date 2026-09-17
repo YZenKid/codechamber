@@ -31,7 +31,8 @@ import { usePrefetchSessionMessages, useSessionMessageRecordsForExport } from '@
 import { getSyncSessionMaterializationStatus } from '@/sync/sync-refs';
 import { useViewportStore, viewportSessionKey } from '@/sync/viewport-store';
 import { DraggableSessionRow } from '../folders/sessionFolderDnd';
-import { canShowSessionWorktreeMenu, getSessionWorktreeMenuDisabled, nodeContainsSessionId, nodeHasPinnedMembershipChange, selectQuestionBadgeSessionScopes, selectRowBadgeVisibilityClass } from './sessionNodeItemUtils';
+import { canShowSessionWorktreeMenu, getSessionWorktreeMenuDisabled, nodeContainsSessionId, nodeHasPinnedMembershipChange, selectQuestionBadgeSessionScopes, selectRowBadgeVisibilityClass, selectSessionRowStatusMarker } from './sessionNodeItemUtils';
+import { useSessionSubtreeActive } from './collapsedActivityState';
 import type { SessionNode } from '../types';
 import { formatProjectLabel, formatSessionCompactDateLabel, formatSessionDateLabel, normalizePath, renderHighlightedText } from '../utils';
 import { useProjectsStore } from '@/stores/useProjectsStore';
@@ -511,7 +512,10 @@ function SessionNodeItemComponent(props: SessionNodeItemProps): React.ReactNode 
   const isMultiRunLikeSession = React.useMemo(() => parseMultiRunSessionTitle(resolvedSession.title) !== null, [resolvedSession.title]);
   const [fusionDialogOpen, setFusionDialogOpen] = React.useState(false);
 
-  const descendantCount = React.useMemo(() => collectNodeDescendantIds(node).length, [collectNodeDescendantIds, node]);
+  const descendantSessionIds = React.useMemo(() => collectNodeDescendantIds(node), [collectNodeDescendantIds, node]);
+  const descendantCount = descendantSessionIds.length;
+  // Must stay above the rename early-return: hooks cannot sit behind a branch.
+  const hasActiveDescendant = useSessionSubtreeActive(descendantSessionIds, hasChildren && !isStreaming);
 
   const collectChildExports = React.useCallback(async (children: SessionNode[]): Promise<{ children: ChildSessionExport[]; skipped: number }> => {
     const results: ChildSessionExport[] = [];
@@ -725,27 +729,34 @@ function SessionNodeItemComponent(props: SessionNodeItemProps): React.ReactNode 
     menuOpen: isSessionMenuOpen,
     hideOnHoverClass,
   });
-  const showUnreadStatus = !isSessionActionPending && !isStreaming && needsAttention && !isActive;
-  const showStatusMarker = isStreaming || showUnreadStatus;
-  // Both states are the same static dot; only the color separates "running"
-  // from "unread". The elapsed-turn readout on the right carries the motion
-  // that a spinner used to, at one repaint per second instead of per frame.
-  const statusMarkerLabel = isStreaming
+  // A running subagent keeps the row's dot lit even after the parent's own turn
+  // settled. The elapsed counter stays parent-only: a child's runtime says
+  // nothing about this row's turn.
+  const {
+    isBusy,
+    showStatusMarker,
+    showActivityDuration,
+  } = selectSessionRowStatusMarker({
+    isStreaming,
+    hasActiveDescendant,
+    isSessionActionPending,
+    needsAttention,
+    isActive,
+    hasActivityDuration,
+  });
+  const statusMarkerLabel = isBusy
     ? t('sessions.sidebar.session.status.active')
     : t('sessions.sidebar.session.status.unread');
   const statusMarkerContent = (
     <span
       className={cn(
         'h-1.5 w-1.5 rounded-full',
-        isStreaming ? 'bg-primary' : 'bg-[var(--status-info)]',
+        isBusy ? 'bg-primary' : 'bg-[var(--status-info)]',
       )}
       aria-label={statusMarkerLabel}
       title={statusMarkerLabel}
     />
   );
-  // The settled duration lives exactly as long as the unread marker does, so a
-  // session read (or watched) while it finishes never keeps a stale total.
-  const showActivityDuration = (isStreaming || showUnreadStatus) && hasActivityDuration;
   const hideLeadingIndicatorOnHover = !alwaysShowActions && hasChildren && (isSessionActionPending || showStatusMarker || isPinnedSession);
   const showPinnedMarker = isPinnedSession && !isSessionActionPending && !showStatusMarker;
   const pinnedMarkerContent = (

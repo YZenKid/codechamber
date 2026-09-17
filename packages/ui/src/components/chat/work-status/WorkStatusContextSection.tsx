@@ -1,8 +1,6 @@
 import React from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from '@/components/icon/Icon';
-import { useSkillsStore } from '@/stores/useSkillsStore';
-import { useMcpStore } from '@/stores/useMcpStore';
 import { useSession } from '@/sync/sync-context';
 import { getLinkedIssues, canOpenLinearIssueInContextPanel } from '@/lib/linkedIssues';
 import { fetchSessionKnowledgeSummary, setSessionProjectContextPin, type SessionKnowledgeSummary } from '@/lib/sessionKnowledgeApi';
@@ -15,7 +13,6 @@ import { resolveProjectContextId } from '@/lib/projectContextApi';
 import { useRuntimeAPIs } from '@/hooks/useRuntimeAPIs';
 import { useMobileAppActions } from '@/apps/mobileAppContext';
 import { useLinearAuthStore } from '@/stores/useLinearAuthStore';
-import { useConfigStore } from '@/stores/useConfigStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { WorkStatusCollapsibleSection, WorkStatusRow, WorkStatusValue } from './WorkStatusPrimitives';
 import { useReportWorkStatusPresence } from './presenceContext';
@@ -49,28 +46,6 @@ export const WorkStatusContextSection: React.FC<Props> = ({ sessionId, directory
   const availableWorktreesByProject = useSessionUIStore((state) => state.availableWorktreesByProject);
   const projects = useProjectsStore((state) => state.projects);
   const isDraft = sessionId === null && newSessionDraft.open;
-  const skills = useSkillsStore((state) => state.skills);
-  const mcpStatus = useMcpStore(
-    React.useCallback((state) => state.getStatusForDirectory(directory), [directory]),
-  );
-
-  // Skills were previously fetched only when the composer's slash autocomplete
-  // opened, so this row reported whatever count happened to be cached — often
-  // none — until the user typed "/". The panel states a count, so it is the
-  // panel's business to have one. Re-run per directory because skills are
-  // discovered relative to the active project. No background-network wrap
-  // here: `loadSkills` already gates its own fetch, and wrapping it again
-  // would hold a second slot idle for the length of the first.
-  const loadSkills = useSkillsStore((state) => state.loadSkills);
-  // `isConnected` is a dependency, not a gate: skills are discovered on the
-  // connected instance and their caches are dropped when instances switch, so
-  // the count has to be asked for again once the new instance is up. Two
-  // instances can hold the same project path, which leaves `directory`
-  // unchanged across a switch.
-  const isConnected = useConfigStore((state) => state.isConnected);
-  React.useEffect(() => {
-    void loadSkills();
-  }, [directory, isConnected, loadSkills]);
 
   /**
    * What this session carries. Read from the server
@@ -171,22 +146,10 @@ export const WorkStatusContextSection: React.FC<Props> = ({ sessionId, directory
     }
     window.open(entry.url, '_blank', 'noopener,noreferrer');
   }, [directory, linear, linearConnected, mobileActions, openContextPanelTab, setLinearIssueFocus]);
-  // Connected servers only. A disabled server contributes nothing to the
-  // context, so counting it here contradicts the MCP section right above,
-  // which shows the same servers switched off.
-  const mcpCount = React.useMemo(
-    () => Object.values(mcpStatus ?? {}).filter((entry) => entry?.status === 'connected').length,
-    [mcpStatus],
-  );
+  const hasContextSources = linked.length > 0 || pinnedCount > 0 || memoryCount > 0;
+  useReportWorkStatusPresence('context-sources', hasContextSources);
 
-  useReportWorkStatusPresence(
-    'context-sources',
-    linked.length > 0 || skills.length > 0 || mcpCount > 0 || pinnedCount > 0 || memoryCount > 0,
-  );
-
-  if (linked.length === 0 && skills.length === 0 && mcpCount === 0 && pinnedCount === 0 && memoryCount === 0) {
-    return null;
-  }
+  if (!hasContextSources) return null;
 
   // The heading names what is distinctive about this session when there is
   // something — an attached thread — and falls back to the ambient counts
@@ -209,18 +172,6 @@ export const WorkStatusContextSection: React.FC<Props> = ({ sessionId, directory
     summaryParts.push(pinnedCount === 1
       ? t('chat.workStatus.breakdown.pinnedKnowledgeSingle', { count: pinnedCount })
       : t('chat.workStatus.breakdown.pinnedKnowledgePlural', { count: pinnedCount }));
-  }
-  if (summaryParts.length === 0) {
-    if (skills.length > 0) {
-      summaryParts.push(skills.length === 1
-        ? t('chat.workStatus.breakdown.skillCountSingle', { count: skills.length })
-        : t('chat.workStatus.breakdown.skillCountPlural', { count: skills.length }));
-    }
-    if (mcpCount > 0) {
-      summaryParts.push(mcpCount === 1
-        ? t('chat.workStatus.breakdown.mcpCountSingle', { count: mcpCount })
-        : t('chat.workStatus.breakdown.mcpCountPlural', { count: mcpCount }));
-    }
   }
 
   return (
@@ -314,17 +265,6 @@ export const WorkStatusContextSection: React.FC<Props> = ({ sessionId, directory
           value={<WorkStatusValue>{memoryCount}</WorkStatusValue>}
         />
       ) : null}
-
-      <WorkStatusRow
-        muted
-        label={t('chat.workStatus.breakdown.skills')}
-        value={<WorkStatusValue>{skills.length}</WorkStatusValue>}
-      />
-      <WorkStatusRow
-        muted
-        label={t('chat.workStatus.breakdown.mcp')}
-        value={<WorkStatusValue>{mcpCount}</WorkStatusValue>}
-      />
     </WorkStatusCollapsibleSection>
   );
 };

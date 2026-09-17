@@ -1969,6 +1969,10 @@ export async function abortCurrentOperation(sessionId: string): Promise<void> {
   } catch (error) {
     console.error("[session-actions] abort failed", error)
   }
+
+  for (const { session, directory } of getDescendantSessions(sessionId)) {
+    await abortDescendantIfBusy(session.id, directory)
+  }
 }
 
 // ---------------------------------------------------------------------------

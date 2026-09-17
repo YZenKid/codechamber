@@ -107,6 +107,7 @@ export const WorkStatusTasksSection: React.FC<Props> = ({ sessionId, directory }
     <WorkStatusCollapsibleSection
       id="tasks"
       title={t('chat.workStatus.section.tasks')}
+      icon="list-check-3"
       summary={`${doneCount}/${visibleTodos.length}`}
       defaultExpanded
       collapsedContent={activeTodo ? <TaskRow todo={activeTodo} /> : null}

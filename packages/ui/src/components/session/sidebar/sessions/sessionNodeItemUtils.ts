@@ -360,6 +360,40 @@ export const selectRowBadgeVisibilityClass = (input: {
 };
 
 /**
+ * Session-row status marker inputs. `hasActiveDescendant` is the subagent
+ * rollup: it carries the busy dot but never the elapsed counter, because the
+ * row's own turn duration says nothing about a running child.
+ */
+export type SessionRowStatusMarkerInput = {
+  isStreaming: boolean;
+  hasActiveDescendant: boolean;
+  isSessionActionPending: boolean;
+  needsAttention: boolean;
+  isActive: boolean;
+  hasActivityDuration: boolean;
+};
+
+export type SessionRowStatusMarker = {
+  isBusy: boolean;
+  showUnreadStatus: boolean;
+  showStatusMarker: boolean;
+  showActivityDuration: boolean;
+};
+
+export const selectSessionRowStatusMarker = (
+  input: SessionRowStatusMarkerInput,
+): SessionRowStatusMarker => {
+  const isBusy = input.isStreaming || input.hasActiveDescendant;
+  const showUnreadStatus = !input.isSessionActionPending && !isBusy && input.needsAttention && !input.isActive;
+  return {
+    isBusy,
+    showUnreadStatus,
+    showStatusMarker: isBusy || showUnreadStatus,
+    showActivityDuration: (input.isStreaming || showUnreadStatus) && input.hasActivityDuration,
+  };
+};
+
+/**
  * Resolve the session id whose sidebar menu is open, or null if no
  * menu is open. Only one row can have its menu open at a time.
  */

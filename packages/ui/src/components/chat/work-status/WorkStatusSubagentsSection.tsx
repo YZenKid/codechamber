@@ -18,6 +18,40 @@ type Props = {
 
 const SECTION_ID = 'subagents';
 
+type SubagentState = 'permission' | 'question' | 'working' | 'done';
+
+type SubagentRowProps = {
+  label: string;
+  state: SubagentState;
+  cost: number;
+  value: string;
+  ariaLabel?: string;
+  onClick?: () => void;
+};
+
+const subagentState = (blocked: boolean, asked: boolean, working: boolean): SubagentState => {
+  if (blocked) return 'permission';
+  if (asked) return 'question';
+  return working ? 'working' : 'done';
+};
+
+const isWorking = (status: State['session_status'][string] | undefined): boolean =>
+  status?.type === 'busy' || status?.type === 'retry';
+
+const SubagentRow: React.FC<SubagentRowProps> = ({ label, state, cost, value, ariaLabel, onClick }) => (
+  <WorkStatusRow
+    onClick={onClick}
+    ariaLabel={ariaLabel}
+    label={label}
+    value={(
+      <>
+        <WorkStatusValue tone={state === 'working' ? 'info' : state === 'done' ? 'muted' : 'warning'}>{value}</WorkStatusValue>
+        {cost > 0 ? <WorkStatusValue tone="muted">{formatCost(cost)}</WorkStatusValue> : null}
+      </>
+    )}
+  />
+);
+
 /**
  * Running subagents and, more importantly, their blockers: a permission request
  * raised by a child session has no representation in the transcript, so this
@@ -79,7 +113,39 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
 
   if (children.length === 0) return null;
 
-  const busyChildren = children.filter((child) => statuses[child.id]?.type === 'busy').length;
+  const workingChildren = children.filter((child) => isWorking(statuses[child.id])).length;
+  const rowState = (childId: string): SubagentState => subagentState(
+    (permissions[childId]?.length ?? 0) > 0,
+    (questions[childId]?.length ?? 0) > 0,
+    isWorking(statuses[childId]),
+  );
+  // Collapsed, one row speaks for the section. Blockers outrank agent order,
+  // then work; done children never become a preview.
+  const previewChild = children.find((child) => rowState(child.id) === 'permission')
+    ?? children.find((child) => rowState(child.id) === 'question')
+    ?? children.find((child) => rowState(child.id) === 'working');
+  const renderChild = (child: State['session'][number]) => {
+    const label = child.title?.trim() || t('chat.workStatus.subagent.untitled');
+    const state = rowState(child.id);
+    const value = state === 'permission'
+      ? t('chat.workStatus.subagent.needsPermission')
+      : state === 'question'
+        ? t('chat.workStatus.subagent.askedQuestion')
+        : state === 'working'
+          ? t('chat.workStatus.subagent.working')
+          : t('chat.workStatus.subagent.done');
+    return (
+      <SubagentRow
+        key={child.id}
+        label={label}
+        state={state}
+        cost={perChildCost.get(child.id) ?? 0}
+        value={value}
+        onClick={directory ? () => openChildSession(child.id, label) : undefined}
+        ariaLabel={t('chat.workStatus.action.openSubagent', { name: label })}
+      />
+    );
+  };
 
   return (
     <WorkStatusCollapsibleSection
@@ -87,38 +153,11 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
       title={t('chat.workStatus.section.subagents')}
       icon="ai-agent"
       defaultExpanded
-      summary={busyChildren > 0 ? `${busyChildren}/${children.length}` : children.length}
+      summary={workingChildren > 0 ? `${workingChildren}/${children.length}` : children.length}
+      collapsedContent={previewChild ? renderChild(previewChild) : null}
     >
       <div className="max-h-56 overflow-y-auto">
-        {children.map((child) => {
-          const blocked = (permissions[child.id]?.length ?? 0) > 0;
-          const asked = (questions[child.id]?.length ?? 0) > 0;
-          const busy = statuses[child.id]?.type === 'busy';
-          const label = child.title?.trim() || t('chat.workStatus.subagent.untitled');
-          const childCost = perChildCost.get(child.id) ?? 0;
-          return (
-            <WorkStatusRow
-              key={child.id}
-              onClick={directory ? () => openChildSession(child.id, label) : undefined}
-              ariaLabel={t('chat.workStatus.action.openSubagent', { name: label })}
-              label={label}
-              value={(
-                <>
-                  {blocked ? (
-                    <WorkStatusValue tone="warning">{t('chat.workStatus.subagent.needsPermission')}</WorkStatusValue>
-                  ) : asked ? (
-                    <WorkStatusValue tone="warning">{t('chat.workStatus.subagent.askedQuestion')}</WorkStatusValue>
-                  ) : busy ? (
-                    <WorkStatusValue tone="info">{t('chat.workStatus.subagent.working')}</WorkStatusValue>
-                  ) : (
-                    <WorkStatusValue tone="muted">{t('chat.workStatus.subagent.done')}</WorkStatusValue>
-                  )}
-                  {childCost > 0 ? <WorkStatusValue tone="muted">{formatCost(childCost)}</WorkStatusValue> : null}
-                </>
-              )}
-            />
-          );
-        })}
+        {children.map(renderChild)}
       </div>
     </WorkStatusCollapsibleSection>
   );

@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import type { Session } from '@opencode-ai/sdk/v2';
 import { replaceGlobalSessionStatusById } from '@/sync/global-session-status';
 import { useNotificationStore } from '@/sync/notification-store';
-import { useCollapsedSessionActivityState } from './collapsedActivityState';
+import { useCollapsedSessionActivityState, useSessionSubtreeActive } from './collapsedActivityState';
 import type { SessionNode } from '../types';
 import { installHookTestDom } from '../test-utils/testDom';
 
@@ -51,6 +51,46 @@ describe('collapsed activity scalar selector', () => {
         list: [],
         index: { session: { unseenCount: {}, unseenHasError: {} }, project: { unseenCount: {}, unseenHasError: {} } },
       });
+      dom.restore();
+    }
+  });
+});
+
+describe('useSessionSubtreeActive', () => {
+  test('follows only listed descendants and rerenders once when the rollup flips', async () => {
+    const dom = installHookTestDom();
+    const root = createRoot(dom.container);
+    replaceGlobalSessionStatusById(new Map());
+    const descendantIds = ['descendant'];
+    type RollupCapture = { renders: number; active: boolean };
+    const capture: RollupCapture = { renders: 0, active: false };
+    const Harness = ({ enabled }: { enabled: boolean }) => {
+      capture.renders += 1;
+      capture.active = useSessionSubtreeActive(descendantIds, enabled);
+      return null;
+    };
+    try {
+      await act(async () => root.render(React.createElement(Harness, { enabled: true })));
+      const initialRenders = capture.renders;
+
+      await act(async () => replaceGlobalSessionStatusById(new Map([['unrelated', { status: { type: 'busy' }, directory: '/workspace' }]])));
+      expect(capture.active).toBe(false);
+      expect(capture.renders).toBe(initialRenders);
+
+      await act(async () => replaceGlobalSessionStatusById(new Map([['descendant', { status: { type: 'busy' }, directory: '/workspace' }]])));
+      expect(capture.active).toBe(true);
+      expect(capture.renders).toBe(initialRenders + 1);
+
+      await act(async () => root.render(React.createElement(Harness, { enabled: false })));
+      expect(capture.active).toBe(false);
+      await act(async () => replaceGlobalSessionStatusById(new Map([
+        ['descendant', { status: { type: 'busy' }, directory: '/workspace' }],
+        ['another', { status: { type: 'busy' }, directory: '/workspace' }],
+      ])));
+      expect(capture.active).toBe(false);
+    } finally {
+      await act(async () => root.unmount());
+      replaceGlobalSessionStatusById(new Map());
       dom.restore();
     }
   });

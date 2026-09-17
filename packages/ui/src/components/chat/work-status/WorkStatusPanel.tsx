@@ -8,12 +8,14 @@ import { WORK_STATUS_PANEL_WIDTH } from './useWorkStatusVisibility';
 import { WorkStatusGoalRow } from './WorkStatusGoalRow';
 import { WorkStatusPrimaryGroup } from './WorkStatusPrimaryGroup';
 import { WorkStatusUsageSection } from './WorkStatusUsageSection';
+import { WorkStatusLspSection } from './WorkStatusLspSection';
 import { WorkStatusTelemetrySection } from './WorkStatusTelemetrySection';
 import { WorkStatusSubagentsSection } from './WorkStatusSubagentsSection';
 import { WorkStatusTasksSection } from './WorkStatusTasksSection';
 import { WorkStatusMcpSection } from './WorkStatusMcpSection';
 import { WorkStatusPinnedSection } from './WorkStatusPinnedSection';
 import { WorkStatusContextSection } from './WorkStatusContextSection';
+import { WorkStatusSkillsSection } from './WorkStatusSkillsSection';
 import { WorkStatusSectionsDialog } from './WorkStatusSectionsDialog';
 import {
   areAllWorkStatusSectionsHidden,
@@ -171,6 +173,7 @@ export const WorkStatusPanel: React.FC<Props> = ({ sessionId, directory, visible
   // Keep these elements owned by the panel so primary readout updates do not
   // rerender unrelated sections through the composition callback.
   const secondarySections = {
+    lsp: <WorkStatusLspSection directory={directory} />,
     usage: <WorkStatusUsageSection />,
     telemetry: <WorkStatusTelemetrySection sessionId={sessionId} directory={directory} />,
     subagents: <WorkStatusSubagentsSection sessionId={sessionId} directory={directory} />,
@@ -178,6 +181,7 @@ export const WorkStatusPanel: React.FC<Props> = ({ sessionId, directory, visible
     mcp: <WorkStatusMcpSection directory={directory} />,
     pinned: <WorkStatusPinnedSection sessionId={sessionId} directory={directory} />,
     contextSources: <WorkStatusContextSection sessionId={sessionId} directory={directory} />,
+    skills: <WorkStatusSkillsSection directory={directory} />,
   } satisfies Record<Exclude<WorkStatusSectionId, 'session' | 'repository'>, React.ReactNode>;
 
   return (

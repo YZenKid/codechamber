@@ -12,6 +12,7 @@ import {
   selectFolderRootNodes,
   selectQuestionBadgeSessionScopes,
   selectRowBadgeVisibilityClass,
+  selectSessionRowStatusMarker,
 } from './sessionNodeItemUtils';
 import type { SessionNode } from '../types';
 
@@ -204,6 +205,63 @@ describe('selectRowBadgeVisibilityClass', () => {
       menuOpen: true,
       hideOnHoverClass,
     })).toBe('');
+  });
+});
+
+describe('selectSessionRowStatusMarker', () => {
+  const marker = (input: Partial<Parameters<typeof selectSessionRowStatusMarker>[0]> = {}) => selectSessionRowStatusMarker({
+    isStreaming: false,
+    hasActiveDescendant: false,
+    isSessionActionPending: false,
+    needsAttention: false,
+    isActive: false,
+    hasActivityDuration: true,
+    ...input,
+  });
+
+  test('shows busy marker without duration for an active descendant', () => {
+    expect(marker({ hasActiveDescendant: true })).toMatchObject({
+      isBusy: true,
+      showStatusMarker: true,
+      showActivityDuration: false,
+    });
+  });
+
+  test('shows duration for a streaming parent with timing', () => {
+    expect(marker({ isStreaming: true })).toMatchObject({
+      isBusy: true,
+      showActivityDuration: true,
+    });
+  });
+
+  test('keeps streaming marker without duration when timing is unavailable', () => {
+    expect(marker({ isStreaming: true, hasActivityDuration: false })).toMatchObject({
+      showStatusMarker: true,
+      showActivityDuration: false,
+    });
+  });
+
+  test('shows unread marker and duration for an idle unread parent', () => {
+    expect(marker({ needsAttention: true })).toMatchObject({
+      isBusy: false,
+      showUnreadStatus: true,
+      showActivityDuration: true,
+    });
+  });
+
+  test('suppresses unread marker when a descendant is busy', () => {
+    expect(marker({ hasActiveDescendant: true, needsAttention: true })).toMatchObject({
+      showUnreadStatus: false,
+      isBusy: true,
+    });
+  });
+
+  test('suppresses unread marker for active row', () => {
+    expect(marker({ needsAttention: true, isActive: true }).showUnreadStatus).toBe(false);
+  });
+
+  test('suppresses unread marker during pending session action', () => {
+    expect(marker({ needsAttention: true, isSessionActionPending: true }).showUnreadStatus).toBe(false);
   });
 });
 

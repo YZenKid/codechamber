@@ -2445,6 +2445,47 @@ describe("unrevertSession descendant cascade", () => {
   })
 })
 
+describe("abortCurrentOperation descendant cascade", () => {
+  beforeEach(() => {
+    replyCalls.length = 0
+  })
+
+  test("aborts root then busy descendants using their own directories", async () => {
+    // SAFETY: the abort cascade only reads session id/parentID/directory; the fixture is intentionally minimal.
+    const sessions = [
+      { id: "root", directory: "/root", time: { created: 1 } },
+      { id: "busy-child", parentID: "root", directory: "/child", time: { created: 2 } },
+      { id: "busy-grandchild", parentID: "busy-child", directory: "/grandchild", time: { created: 3 } },
+      { id: "idle-child", parentID: "root", directory: "/idle", time: { created: 4 } },
+      { id: "unknown-child", parentID: "root", directory: "/unknown", time: { created: 5 } },
+    ] as Session[]
+    const rootStore = createStore({}, { session: sessions })
+    const childStore = createStore({}, { session_status: { "busy-child": { type: "busy" } } })
+    const grandchildStore = createStore({}, { session_status: { "busy-grandchild": { type: "busy" } } })
+    const idleStore = createStore({}, { session_status: { "idle-child": { type: "idle" } } })
+
+    const { abortCurrentOperation, setActionRefs } = await import("./session-actions")
+    setActionRefs(
+      actionSdk,
+      createChildStores([
+        ["/root", rootStore],
+        ["/child", childStore],
+        ["/grandchild", grandchildStore],
+        ["/idle", idleStore],
+      ]),
+      () => "/root",
+    )
+
+    await abortCurrentOperation("root")
+
+    expect(replyCalls.filter((call) => call.method === "session.abort").map((call) => call.params)).toEqual([
+      { sessionID: "root", directory: "/root" },
+      { sessionID: "busy-child", directory: "/child" },
+      { sessionID: "busy-grandchild", directory: "/grandchild" },
+    ])
+  })
+})
+
 describe("dismissPermission passes directory", () => {
   beforeEach(() => {
     replyCalls.length = 0
