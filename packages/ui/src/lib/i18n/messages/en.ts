@@ -1,6 +1,7 @@
 import { settingsDict } from './en.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict = {
@@ -30,6 +31,7 @@ export const dict = {
   ...settingsDict,
   ...linearIssuePickerI18n.en,
   ...linearPanelI18n.en,
+  ...routingI18n.en,
   ...pluginPanelI18n.en,
   'terminalView.actions.attachSelection': 'Attach selected output',
   'terminalView.actions.copySelection': 'Copy selected output',
@@ -1633,6 +1635,8 @@ export const dict = {
   'diffView.unavailable.missingDescription': 'It was removed after the list of changes loaded. The list is refreshing.',
   'diffView.unavailable.nestedRepositoryTitle': 'Separate Git repository',
   'diffView.unavailable.nestedRepositoryDescription': 'This folder has its own Git history. Open it as a project to see its changes.',
+  'diffView.unavailable.untrackedDirectoryTitle': 'Folder of new files',
+  'diffView.unavailable.untrackedDirectoryDescription': 'This folder holds too many new files to list one by one. Stage it, or add it to .gitignore if it does not belong in the repository.',
   'diffView.submodule.title': 'Submodule',
   'diffView.submodule.commitChanged': 'Commit {from} → {to}',
   'diffView.submodule.commitUnchanged': 'Still on commit {commit}',

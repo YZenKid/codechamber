@@ -2,6 +2,7 @@ import type { I18nKey } from './en';
 import { settingsDict } from './es.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict: Record<I18nKey, string> = {
@@ -31,6 +32,7 @@ export const dict: Record<I18nKey, string> = {
   ...settingsDict,
   ...linearIssuePickerI18n.es,
   ...linearPanelI18n.es,
+  ...routingI18n.es,
   ...pluginPanelI18n.es,
   'terminalView.actions.attachSelection': 'Adjuntar salida seleccionada',
   'terminalView.actions.copySelection': 'Copiar salida seleccionada',
@@ -1599,6 +1601,8 @@ export const dict: Record<I18nKey, string> = {
   "diffView.unavailable.missingDescription": "Se eliminó después de cargar la lista de cambios. La lista se está actualizando.",
   "diffView.unavailable.nestedRepositoryTitle": "Repositorio Git independiente",
   "diffView.unavailable.nestedRepositoryDescription": "Esta carpeta tiene su propio historial de Git. Ábrela como proyecto para ver sus cambios.",
+  "diffView.unavailable.untrackedDirectoryTitle": "Carpeta con archivos nuevos",
+  "diffView.unavailable.untrackedDirectoryDescription": "Esta carpeta contiene demasiados archivos nuevos para listarlos uno por uno. Prepárala (stage) o añádela a .gitignore si no pertenece al repositorio.",
   "diffView.submodule.title": "Submódulo",
   "diffView.submodule.commitChanged": "Commit {from} → {to}",
   "diffView.submodule.commitUnchanged": "Sigue en el commit {commit}",

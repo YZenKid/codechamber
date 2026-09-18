@@ -2,6 +2,7 @@ import type { I18nKey } from './en';
 import { settingsDict } from './pt-BR.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict: Record<I18nKey, string> = {
@@ -31,6 +32,7 @@ export const dict: Record<I18nKey, string> = {
   ...settingsDict,
   ...linearIssuePickerI18n['pt-BR'],
   ...linearPanelI18n['pt-BR'],
+  ...routingI18n['pt-BR'],
   ...pluginPanelI18n['pt-BR'],
   'terminalView.actions.attachSelection': 'Anexar saída selecionada',
   'terminalView.actions.copySelection': 'Copiar saída selecionada',
@@ -1599,6 +1601,8 @@ export const dict: Record<I18nKey, string> = {
   "diffView.unavailable.missingDescription": "Ele foi removido depois que a lista de alterações carregou. A lista está sendo atualizada.",
   "diffView.unavailable.nestedRepositoryTitle": "Repositório Git separado",
   "diffView.unavailable.nestedRepositoryDescription": "Esta pasta tem seu próprio histórico Git. Abra-a como projeto para ver as alterações dela.",
+  "diffView.unavailable.untrackedDirectoryTitle": "Pasta com arquivos novos",
+  "diffView.unavailable.untrackedDirectoryDescription": "Esta pasta tem arquivos novos demais para listá-los um a um. Faça o stage dela ou adicione-a ao .gitignore se ela não pertence ao repositório.",
   "diffView.submodule.title": "Submódulo",
   "diffView.submodule.commitChanged": "Commit {from} → {to}",
   "diffView.submodule.commitUnchanged": "Ainda no commit {commit}",

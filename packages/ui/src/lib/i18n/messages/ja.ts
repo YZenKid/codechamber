@@ -2,6 +2,7 @@ import type { I18nKey } from './en';
 import { settingsDict } from './ja.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict: Record<I18nKey, string> = {
@@ -31,6 +32,7 @@ export const dict: Record<I18nKey, string> = {
   ...settingsDict,
   ...linearIssuePickerI18n.ja,
   ...linearPanelI18n.ja,
+  ...routingI18n.ja,
   ...pluginPanelI18n.ja,
   'terminalView.actions.attachSelection': '選択した出力を添付',
   'terminalView.actions.copySelection': '選択した出力をコピー',
@@ -1629,6 +1631,8 @@ export const dict: Record<I18nKey, string> = {
   'diffView.unavailable.missingDescription': '変更一覧の読み込み後に削除されました。一覧を更新しています。',
   'diffView.unavailable.nestedRepositoryTitle': '別の Git リポジトリ',
   'diffView.unavailable.nestedRepositoryDescription': 'このフォルダーには独自の Git 履歴があります。変更を見るにはプロジェクトとして開いてください。',
+  'diffView.unavailable.untrackedDirectoryTitle': '新規ファイルのフォルダー',
+  'diffView.unavailable.untrackedDirectoryDescription': 'このフォルダーには新規ファイルが多すぎるため、個別に一覧表示できません。ステージするか、リポジトリに不要であれば .gitignore に追加してください。',
   'diffView.submodule.title': 'サブモジュール',
   'diffView.submodule.commitChanged': 'コミット {from} → {to}',
   'diffView.submodule.commitUnchanged': 'コミット {commit} のまま',

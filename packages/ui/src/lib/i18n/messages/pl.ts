@@ -2,6 +2,7 @@ import type { I18nKey } from './en';
 import { settingsDict } from './pl.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict: Record<I18nKey, string> = {
@@ -31,6 +32,7 @@ export const dict: Record<I18nKey, string> = {
   ...settingsDict,
   ...linearIssuePickerI18n.pl,
   ...linearPanelI18n.pl,
+  ...routingI18n.pl,
   ...pluginPanelI18n.pl,
   'terminalView.actions.attachSelection': 'Dołącz zaznaczone dane wyjściowe',
   'terminalView.actions.copySelection': 'Kopiuj zaznaczone dane wyjściowe',
@@ -1928,6 +1930,8 @@ export const dict: Record<I18nKey, string> = {
   'diffView.unavailable.missingDescription': 'Został usunięty po wczytaniu listy zmian. Lista jest odświeżana.',
   'diffView.unavailable.nestedRepositoryTitle': 'Osobne repozytorium Git',
   'diffView.unavailable.nestedRepositoryDescription': 'Ten folder ma własną historię Git. Otwórz go jako projekt, aby zobaczyć jego zmiany.',
+  'diffView.unavailable.untrackedDirectoryTitle': 'Folder z nowymi plikami',
+  'diffView.unavailable.untrackedDirectoryDescription': 'Ten folder zawiera zbyt wiele nowych plików, aby wyświetlić je pojedynczo. Dodaj go do indeksu (stage) albo wpisz do .gitignore, jeśli nie należy do repozytorium.',
   'diffView.submodule.title': 'Submoduł',
   'diffView.submodule.commitChanged': 'Commit {from} → {to}',
   'diffView.submodule.commitUnchanged': 'Nadal na commicie {commit}',

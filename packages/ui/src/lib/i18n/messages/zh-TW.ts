@@ -2,6 +2,7 @@ import type { I18nKey } from './en';
 import { settingsDict } from './zh-TW.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict: Record<I18nKey, string> = {
@@ -31,6 +32,7 @@ export const dict: Record<I18nKey, string> = {
   ...settingsDict,
   ...linearIssuePickerI18n['zh-TW'],
   ...linearPanelI18n['zh-TW'],
+  ...routingI18n['zh-TW'],
   ...pluginPanelI18n['zh-TW'],
   'terminalView.actions.attachSelection': '附加所選輸出',
   'terminalView.actions.copySelection': '複製所選輸出',
@@ -1609,6 +1611,8 @@ export const dict: Record<I18nKey, string> = {
   'diffView.unavailable.missingDescription': '它在變更清單載入後被刪除。清單正在重新整理。',
   'diffView.unavailable.nestedRepositoryTitle': '獨立的 Git 儲存庫',
   'diffView.unavailable.nestedRepositoryDescription': '此資料夾有自己的 Git 歷史。將其作為專案開啟以查看變更。',
+  'diffView.unavailable.untrackedDirectoryTitle': '新檔案資料夾',
+  'diffView.unavailable.untrackedDirectoryDescription': '此資料夾中的新檔案太多，無法逐一列出。請暫存該資料夾，或若它不屬於儲存庫，將其加入 .gitignore。',
   'diffView.submodule.title': '子模組',
   'diffView.submodule.commitChanged': '提交 {from} → {to}',
   'diffView.submodule.commitUnchanged': '仍在提交 {commit}',

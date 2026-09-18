@@ -1,6 +1,7 @@
 import { settingsDict } from './fr.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict = {
@@ -30,6 +31,7 @@ export const dict = {
   ...settingsDict,
   ...linearIssuePickerI18n.fr,
   ...linearPanelI18n.fr,
+  ...routingI18n.fr,
   ...pluginPanelI18n.fr,
   'terminalView.actions.attachSelection': 'Joindre la sortie sélectionnée',
   'terminalView.actions.copySelection': 'Copier la sortie sélectionnée',
@@ -1396,6 +1398,8 @@ export const dict = {
   'diffView.unavailable.missingDescription': 'Il a été supprimé après le chargement de la liste des modifications. La liste est en cours d’actualisation.',
   'diffView.unavailable.nestedRepositoryTitle': 'Dépôt Git distinct',
   'diffView.unavailable.nestedRepositoryDescription': 'Ce dossier a son propre historique Git. Ouvrez-le comme projet pour voir ses modifications.',
+  'diffView.unavailable.untrackedDirectoryTitle': 'Dossier de nouveaux fichiers',
+  'diffView.unavailable.untrackedDirectoryDescription': 'Ce dossier contient trop de nouveaux fichiers pour les lister un par un. Indexez-le ou ajoutez-le à .gitignore s’il n’a pas sa place dans le dépôt.',
   'diffView.submodule.title': 'Sous-module',
   'diffView.submodule.commitChanged': 'Commit {from} → {to}',
   'diffView.submodule.commitUnchanged': 'Toujours sur le commit {commit}',

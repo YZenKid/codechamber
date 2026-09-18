@@ -2,6 +2,7 @@ import type { I18nKey } from './en';
 import { settingsDict } from './uk.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict: Record<I18nKey, string> = {
@@ -31,6 +32,7 @@ export const dict: Record<I18nKey, string> = {
   ...settingsDict,
   ...linearIssuePickerI18n.uk,
   ...linearPanelI18n.uk,
+  ...routingI18n.uk,
   ...pluginPanelI18n.uk,
   'terminalView.actions.attachSelection': 'Прикріпити вибраний вивід',
   'terminalView.actions.copySelection': 'Скопіювати вибраний вивід',
@@ -1599,6 +1601,8 @@ export const dict: Record<I18nKey, string> = {
   "diffView.unavailable.missingDescription": "Його видалили після того, як завантажився список змін. Список оновлюється.",
   "diffView.unavailable.nestedRepositoryTitle": "Окремий Git-репозиторій",
   "diffView.unavailable.nestedRepositoryDescription": "Ця тека має власну історію Git. Відкрийте її як проєкт, щоб побачити її зміни.",
+  "diffView.unavailable.untrackedDirectoryTitle": "Тека з новими файлами",
+  "diffView.unavailable.untrackedDirectoryDescription": "У цій теці забагато нових файлів, щоб показувати їх окремо. Застейджте її або додайте в .gitignore, якщо їй не місце в репозиторії.",
   "diffView.submodule.title": "Субмодуль",
   "diffView.submodule.commitChanged": "Коміт {from} → {to}",
   "diffView.submodule.commitUnchanged": "Досі на коміті {commit}",

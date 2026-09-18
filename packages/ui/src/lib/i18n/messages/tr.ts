@@ -1,6 +1,7 @@
 import { settingsDict } from './tr.settings';
 import { linearIssuePickerI18n } from './linear-issue-picker.i18n';
 import { linearPanelI18n } from './linear-panel.i18n';
+import { routingI18n } from './routing.i18n';
 import { pluginPanelI18n } from './plugin-panel.i18n';
 
 export const dict = {
@@ -30,6 +31,7 @@ export const dict = {
   ...settingsDict,
   ...linearIssuePickerI18n.tr,
   ...linearPanelI18n.tr,
+  ...routingI18n.tr,
   ...pluginPanelI18n.tr,
   'terminalView.actions.attachSelection': 'Seçili çıktıyı ekle',
   'terminalView.actions.copySelection': 'Seçili çıktıyı kopyala',
@@ -1608,6 +1610,8 @@ export const dict = {
   'diffView.unavailable.missingDescription': 'Değişiklik listesi yüklendikten sonra kaldırıldı. Liste yenileniyor.',
   'diffView.unavailable.nestedRepositoryTitle': 'Ayrı Git deposu',
   'diffView.unavailable.nestedRepositoryDescription': 'Bu klasörün kendi Git geçmişi var. Değişikliklerini görmek için proje olarak açın.',
+  'diffView.unavailable.untrackedDirectoryTitle': 'Yeni dosyalar klasörü',
+  'diffView.unavailable.untrackedDirectoryDescription': 'Bu klasörde tek tek listelenemeyecek kadar çok yeni dosya var. Klasörü hazırlama alanına ekleyin ya da depoya ait değilse .gitignore dosyasına yazın.',
   'diffView.submodule.title': 'Alt modül',
   'diffView.submodule.commitChanged': 'Commit {from} → {to}',
   'diffView.submodule.commitUnchanged': 'Hâlâ {commit} commit\'inde',
