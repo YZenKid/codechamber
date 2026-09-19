@@ -1399,6 +1399,7 @@ const openChamberSessionService = createOpenChamberSessionService({
   waitForOpenCodeReady,
   emitSessionCreatedEvent,
   sessionKnowledgeRuntime,
+  resolvePromptBody: (body, target) => routingRuntime.resolvePromptBody(body, target),
 });
 // Browser actions are published to whichever OpenChamber clients are connected;
 // the one owning the browser panel answers. `emitRequest` returns the number of
@@ -1547,6 +1548,8 @@ async function main(options = {}) {
       const address = server?.address?.();
       return typeof address === 'object' && address ? address.port : null;
     },
+    // A pipe listener reports a string here, which has no address to bind back to.
+    getActiveHost: () => server?.address?.()?.address ?? null,
   });
   systemPromptRuntime = createSystemPromptRuntime({
     fsPromises,
