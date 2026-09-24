@@ -76,7 +76,7 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
   // One subscription covers every child: per-session hooks would multiply
   // store subscriptions by the number of subagents.
   const permissions = useDirectorySync(React.useCallback((state: State) => state.permission, []));
-  const questions = useDirectorySync(React.useCallback((state: State) => state.question, []));
+  const forms = useDirectorySync(React.useCallback((state: State) => state.form, []));
 
   const openContextPanelTab = useUIStore((state) => state.openContextPanelTab);
   const setCurrentSession = useSessionUIStore((state) => state.setCurrentSession);
@@ -116,7 +116,7 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
   const workingChildren = children.filter((child) => isWorking(statuses[child.id])).length;
   const rowState = (childId: string): SubagentState => subagentState(
     (permissions[childId]?.length ?? 0) > 0,
-    (questions[childId]?.length ?? 0) > 0,
+    (forms[childId]?.length ?? 0) > 0,
     isWorking(statuses[childId]),
   );
   // Collapsed, one row speaks for the section. Blockers outrank agent order,
