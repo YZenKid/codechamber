@@ -13,14 +13,12 @@ import type { I18nKey } from '@/lib/i18n/messages/en';
 export const WORK_STATUS_SECTION_IDS = [
   'session',
   'repository',
-  'lsp',
   'usage',
   'telemetry',
   'subagents',
   'mcp',
   'pinned',
   'contextSources',
-  'skills',
 ] as const;
 
 export type WorkStatusSectionId = (typeof WORK_STATUS_SECTION_IDS)[number];
@@ -28,14 +26,12 @@ export type WorkStatusSectionId = (typeof WORK_STATUS_SECTION_IDS)[number];
 export const WORK_STATUS_SECTION_LABEL_KEYS = {
   session: 'chat.workStatus.section.session',
   repository: 'chat.workStatus.section.project',
-  lsp: 'chat.workStatus.section.lsp',
   usage: 'chat.workStatus.section.usage',
   telemetry: 'chat.workStatus.section.telemetry',
   subagents: 'chat.workStatus.section.subagents',
   mcp: 'chat.workStatus.section.mcp',
   pinned: 'chat.workStatus.section.pinned',
   contextSources: 'chat.workStatus.section.contextBreakdown',
-  skills: 'chat.workStatus.section.skills',
 } as const satisfies Record<WorkStatusSectionId, I18nKey>;
 
 const KNOWN_IDS = new Set<string>(WORK_STATUS_SECTION_IDS);
