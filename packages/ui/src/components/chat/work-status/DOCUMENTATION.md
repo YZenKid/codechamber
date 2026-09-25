@@ -108,7 +108,7 @@ which requests only providers enabled for this panel.
 | Goal | `useSessionGoal` | respects the Settings toggle |
 | MCP | `useMcpStore` | connect/disconnect reuses the dropdown's actions |
 | Skills | `useSkillsStore` scoped to the panel directory | lists skills loaded for this project |
-| LSP | directory `state.lsp` | bootstrap plus `lsp.updated` own authoritative status; no panel request or fallback |
+| LSP | directory `state.config.lsp` | lists enabled servers with a command; no panel request, status, or fallback |
 | Pinned messages | `getContextObligatoryMessages` + `state.part` | see below |
 
 ### Turn stats
@@ -246,12 +246,13 @@ the row reflects the reset tree rather than a mid-creation snapshot.
 The default order is by durability:
 
 1. **Session** (goal, context, cost), **Project** (attention, branch,
-   changes, PR, checks), **Usage**, and **Turn stats** (session telemetry:
+   changes, PR, checks), **LSP**, **Usage**, and **Turn stats** (session telemetry:
    throughput, duration, TTFT, cache hit rate) — true for as long as the session
-   is open. Usage sits here rather than lower down because a spent quota stops the
+   is open. LSP sits here because it comes from the project's effective config.
+   Usage sits here rather than lower down because a spent quota stops the
    work outright;
 2. **Subagents** are happening now.
-3. **LSP**, **MCP**, **Pinned messages**, **Context sources**, and **Skills** provide supporting material.
+3. **MCP**, **Pinned messages**, **Context sources**, and **Skills** provide supporting material.
 
 The sections dialog has drag handles for changing this order, including hidden
 sections. A drop updates the panel immediately. `workStatusSectionOrder` is a
@@ -329,12 +330,13 @@ panel.
 
 ## LSP
 
-LSP reads the active directory's authoritative `state.lsp` sync slice. It makes
-no request and keeps no fallback: bootstrap and `lsp.updated` events own that
-state, and an empty list removes the section. The heading summarizes connected
-servers against total servers. Expanded rows show server names and localized
-connected/error states with semantic status colors. Server roots stay hidden at
-this panel width.
+LSP lists enabled servers from the active directory's effective config
+(`state.config.lsp`). It makes no request, claims no runtime status, and keeps
+no fallback: entries need a `command` to render, `disabled` entries are
+skipped, and a missing, boolean, or empty config removes the section. The
+`lsp.updated` event carries no status, so the panel never reports
+connected/error. The heading shows the server name when one is configured, or
+the server count otherwise; rows show server names only.
 
 
 ## Collapsed Usage headline

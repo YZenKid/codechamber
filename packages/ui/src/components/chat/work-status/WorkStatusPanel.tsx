@@ -13,6 +13,8 @@ import { WorkStatusSubagentsSection } from './WorkStatusSubagentsSection';
 import { WorkStatusMcpSection } from './WorkStatusMcpSection';
 import { WorkStatusPinnedSection } from './WorkStatusPinnedSection';
 import { WorkStatusContextSection } from './WorkStatusContextSection';
+import { WorkStatusLspSection } from './WorkStatusLspSection';
+import { WorkStatusSkillsSection } from './WorkStatusSkillsSection';
 import { WorkStatusSectionsDialog } from './WorkStatusSectionsDialog';
 import {
   areAllWorkStatusSectionsHidden,
@@ -176,6 +178,8 @@ export const WorkStatusPanel: React.FC<Props> = ({ sessionId, directory, visible
     mcp: <WorkStatusMcpSection directory={directory} />,
     pinned: <WorkStatusPinnedSection sessionId={sessionId} directory={directory} />,
     contextSources: <WorkStatusContextSection sessionId={sessionId} directory={directory} />,
+    lsp: <WorkStatusLspSection directory={directory} />,
+    skills: <WorkStatusSkillsSection directory={directory} />,
   } satisfies Record<Exclude<WorkStatusSectionId, 'session' | 'repository'>, React.ReactNode>;
 
   return (
