@@ -5,6 +5,7 @@
 
 import type { FilePart, FormRequest, JsonValue, Message, Metadata, ModelRef, Part, Session, TextPart, UserMessage } from "@/lib/opencode/model"
 import { partIds } from "@/lib/opencode/model"
+import { readSubagentRun } from "@/lib/opencode/subagent-run"
 import { Binary } from "./binary"
 import { useSessionUIStore } from "./session-ui-store"
 import { useInputStore } from "./input-store"
@@ -31,6 +32,7 @@ import {
 import { withContextObligatoryMessage, type ContextObligatoryMessage } from "@/lib/contextObligatoryMessages"
 import { getBtwOriginalSessionID, getBtwSessionID, isBtwSession, withoutBtwSessionLink } from "@/lib/sessionBtwMetadata"
 import { withLinkedIssue, type LinkedIssue } from "@/lib/linkedIssues"
+import { withSessionWorkState, type SessionWork } from "@/lib/sessionWorkMetadata"
 import { getImperativeSessionMessageLoader } from "./session-message-loader"
 import { cleanupPersistedSessionState } from "./session-deletion-cleanup"
 import { requestSessionArchiveBatch, requestSessionMetadataUpdate, requestSessionUnarchiveBatch, type SessionArchiveStamp } from "./session-archive-batch"
@@ -484,6 +486,17 @@ async function fetchSessionMessages(sessionId: string, directory?: string | null
   return page.items.map(({ info }) => info)
 }
 
+/**
+ * From when descendants are reverted along with a cut at `target`. A subagent
+ * run's report lands after its child already worked, so reverting the run
+ * reverts the child from its start; any other target cuts at its own time.
+ */
+function descendantRevertCutoff(state: { session: readonly Session[] }, target: Message): number {
+  const run = readSubagentRun(target)
+  const child = run ? state.session.find((session) => session.id === run.childSessionID) : undefined
+  return child ? Math.min(child.time.created, target.time.created) : target.time.created
+}
+
 async function cascadeRevertToDescendants(rootId: string, cutoff: number): Promise<void> {
   for (const { session, directory } of getDescendantSessions(rootId)) {
     try {
@@ -651,6 +664,8 @@ function contextCarriersForMessage(messages: readonly Message[], messageID: stri
  */
 function transcriptCutForMessage(messages: readonly Message[], messageID: string): string {
   const index = messages.findIndex((message) => message.id === messageID)
+  // Only a prompt has carriers; any other target (a subagent run report) is cut at itself.
+  if (messages[index]?.role !== "user") return messageID
   let first = index
   while (first > 0 && messages[first - 1].role === "synthetic") first -= 1
   return first >= 0 ? messages[first].id : messageID
@@ -1056,6 +1071,27 @@ export async function setLinkedIssue(
     withLinkedIssue(metadata, issue, linked))
 }
 
+/**
+ * The user tracks a session as in work (`open`) or marks its work done.
+ * Bound to the server it was clicked on: when the runtime switches while the
+ * change is in flight, nothing reaches the new server or its cache, and the
+ * result is null rather than an error to show.
+ */
+export async function setSessionWorkState(
+  sessionId: string,
+  directory: string | null | undefined,
+  state: SessionWork["state"],
+): Promise<Session | null> {
+  const runtimeKeyAtClick = getRuntimeKey()
+  try {
+    return await patchSessionMetadata(sessionId, directory, (metadata) =>
+      withSessionWorkState(metadata, state, Date.now()), runtimeKeyAtClick)
+  } catch (error) {
+    if (isStaleRuntime(runtimeKeyAtClick)) return null
+    throw error
+  }
+}
+
 export async function setContextObligatoryMessage(
   sessionId: string,
   directory: string | null | undefined,
@@ -1251,6 +1287,30 @@ function finalizeConfirmedSessionDeletion(
       sessionId,
     })
   }
+}
+
+/**
+ * Reconcile a session the authoritative global snapshot proved gone.
+ *
+ * `session.deleted` is the primary signal, but the server can publish it while
+ * this client's stream is being rebuilt, and then nothing removes the session
+ * anywhere else: the live store keeps listing it, the sidebar keeps rendering
+ * it, and the open chat keeps prompting an id the server no longer has. A
+ * later complete snapshot that omits a session from the established baseline
+ * reports the same deletion over the other channel, so it commits the same
+ * reconciliation as a confirmed deletion instead of only clearing persisted
+ * state.
+ *
+ * The captured runtime is rechecked here because the live, global, and UI
+ * stores mutated below are not runtime-scoped.
+ */
+export function reconcileExternallyDeletedSession(identity: {
+  runtimeKey: string
+  directory: string
+  sessionId: string
+}): void {
+  if (isStaleRuntime(identity.runtimeKey)) return
+  finalizeConfirmedSessionDeletion(identity.sessionId, identity.directory, identity.runtimeKey)
 }
 
 type ChatDirectoryCleanupPlan = {
@@ -1660,7 +1720,7 @@ export async function unarchiveSession(sessionId: string, expectedRuntimeKey = g
       const before = store.getState()
       // The restore already committed. A rejected status read is unknown, not
       // an action failure or a reason to mark this session idle.
-      const statuses = await opencodeClient.getActiveSessionStatuses().catch(() => null)
+      const statuses = await opencodeClient.getActiveSessionStatuses(sessionDirectory).catch(() => null)
       if (!isStaleRuntime(expectedRuntimeKey) && statuses !== null) {
         store.setState((current) => {
           if (current.sessionStatusInvalidated !== before.sessionStatusInvalidated
@@ -2332,14 +2392,18 @@ export async function revertToMessage(sessionId: string, messageId: string): Pro
   // Restore file/image attachments from the target message.
   // Clear existing attachments first — previous revert's attachments
   // must not carry over, even when the current message has no files.
-  restoreFilePartsToInput(submittedFileParts)
-  if (draftTarget) restoreContextPartsToInput(submittedContextParts, draftTarget)
+  // Only a prompt goes back to the composer: reverting a subagent run report
+  // leaves whatever the user is typing alone.
+  if (targetMsg?.role === "user") {
+    restoreFilePartsToInput(submittedFileParts)
+    if (draftTarget) restoreContextPartsToInput(submittedContextParts, draftTarget)
+  }
 
   // Call SDK and merge authoritative result into store
   try {
     // Descendants go first because OpenCode also restores file snapshots during
     // revert. All sessions share a directory, so the parent's snapshot must win.
-    await cascadeRevertToDescendants(sessionId, targetMessage.time.created)
+    await cascadeRevertToDescendants(sessionId, descendantRevertCutoff(state, targetMessage))
     // Stage only: the messages disappear behind the revert marker while the
     // dock offers Commit (finalize) or Clear (bring them back).
     await opencodeClient.stageRevert(sessionId, revertMessageID, { directory })
@@ -2430,10 +2494,22 @@ function inheritForkMetadata(sourceSessionId: string, forkedSession: Session, di
 }
 
 /**
+ * Records that start something new after a turn. OpenCode 1 carried a
+ * compaction and a shell run as user messages; OpenCode 2 gives them their own
+ * roles, so they have to be named here or a fork after an answer copies them.
+ */
+const TURN_BOUNDARY_ROLES = new Set<Message["role"]>(["user", "compaction", "shell"])
+
+const isTurnBoundary = (message: Message): boolean =>
+  TURN_BOUNDARY_ROLES.has(message.role) || readSubagentRun(message) !== undefined
+
+/**
  * Fork keeping an assistant turn: the new session holds everything through
  * `messageId`, so the agent there still sees the answer it just gave. The cut
- * is the first user message after it; with none, the whole transcript is copied.
- * The composer stays empty since there is no prompt to rewrite.
+ * is the first record after it that starts something new (a prompt, a
+ * compaction, a shell run, a background subagent run); with none, the whole
+ * transcript is copied. The composer stays empty since there is no prompt to
+ * rewrite.
  */
 export async function forkAfterMessage(sessionId: string, messageId: string): Promise<Session | null> {
   const expectedRuntimeKey = getRuntimeKey()
@@ -2441,10 +2517,10 @@ export async function forkAfterMessage(sessionId: string, messageId: string): Pr
   const messages = store.getState().message[sessionId] ?? []
   const index = messages.findIndex((message) => message.id === messageId)
   if (index < 0) throw new Error("Fork source message is not loaded")
-  const nextUserMessage = messages.slice(index + 1).find((message) => message.role === "user")
+  const boundary = messages.slice(index + 1).find(isTurnBoundary)
 
   const forkedSession = await opencodeClient.forkSession(sessionId, {
-    before: nextUserMessage ? transcriptCutForMessage(messages, nextUserMessage.id) : undefined,
+    before: boundary ? transcriptCutForMessage(messages, boundary.id) : undefined,
     directory,
   })
   if (isStaleRuntime(expectedRuntimeKey)) return null
