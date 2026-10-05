@@ -1,14 +1,20 @@
 import React from 'react';
+import { useGlobalSessionStatusStore } from '@/sync/global-session-status';
+import { Icon } from '@/components/icon/Icon';
+import type { IconName } from '@/components/icon/icons';
+import { SessionActivityDuration } from '@/components/session/SessionActivityDuration';
+import { useHasSessionActivityDuration } from '@/sync/session-activity-timing';
 import { useI18n } from '@/lib/i18n';
 import { useAllLiveSessions, useAllSessionStatuses, useDirectorySync } from '@/sync/sync-context';
 import { useUIStore } from '@/stores/useUIStore';
+import { useConfigStore } from '@/stores/useConfigStore';
+import { getProviderModelDisplayName } from '@/lib/modelDisplay';
 import { useSessionUIStore } from '@/sync/session-ui-store';
 import { isVSCodeRuntime } from '@/lib/desktop';
-import { isEmbeddedSessionChat } from '@/components/layout/contextPanelEmbeddedChat';
 import { WorkStatusCollapsibleSection, WorkStatusRow, WorkStatusValue } from './WorkStatusPrimitives';
 import { useReportWorkStatusPresence } from './presenceContext';
 import { formatCost } from './subagentCost';
-import { useSubagentCostRollup } from './useSubagentCostRollup';
+import { computeRollup } from './useSubagentCostRollup';
 import type { State } from '@/sync/types';
 
 type Props = {
@@ -18,39 +24,10 @@ type Props = {
 
 const SECTION_ID = 'subagents';
 
-type SubagentState = 'permission' | 'question' | 'working' | 'done';
-
-type SubagentRowProps = {
-  label: string;
-  state: SubagentState;
-  cost: number;
-  value: string;
-  ariaLabel?: string;
-  onClick?: () => void;
+const SubagentDuration: React.FC<{ sessionId: string }> = ({ sessionId }) => {
+  const hasDuration = useHasSessionActivityDuration(sessionId, true);
+  return hasDuration ? <SessionActivityDuration sessionId={sessionId} running /> : null;
 };
-
-const subagentState = (blocked: boolean, asked: boolean, working: boolean): SubagentState => {
-  if (blocked) return 'permission';
-  if (asked) return 'question';
-  return working ? 'working' : 'done';
-};
-
-const isWorking = (status: State['session_status'][string] | undefined): boolean =>
-  status?.type === 'busy' || status?.type === 'retry';
-
-const SubagentRow: React.FC<SubagentRowProps> = ({ label, state, cost, value, ariaLabel, onClick }) => (
-  <WorkStatusRow
-    onClick={onClick}
-    ariaLabel={ariaLabel}
-    label={label}
-    value={(
-      <>
-        <WorkStatusValue tone={state === 'working' ? 'info' : state === 'done' ? 'muted' : 'warning'}>{value}</WorkStatusValue>
-        {cost > 0 ? <WorkStatusValue tone="muted">{formatCost(cost)}</WorkStatusValue> : null}
-      </>
-    )}
-  />
-);
 
 /**
  * Running subagents and, more importantly, their blockers: a permission request
@@ -60,6 +37,7 @@ const SubagentRow: React.FC<SubagentRowProps> = ({ label, state, cost, value, ar
 export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directory }) => {
   const { t } = useI18n();
   const isMobile = useUIStore((state) => state.isMobile);
+  const providers = useConfigStore((state) => state.providers);
 
   const liveSessions = useAllLiveSessions();
   const statuses = useAllSessionStatuses();
@@ -70,13 +48,25 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
 
   // Each child's own subtree total (its cost plus every descendant of its
   // own), so nested subagent-of-subagent cost rolls up under the immediate
-  // child row shown here rather than disappearing.
-  const { perChildCost } = useSubagentCostRollup(sessionId);
+  // child row shown here rather than disappearing. Computed from the list
+  // already held: the hook would open a second live-session subscription.
+  const { perChildCost } = React.useMemo(() => computeRollup(liveSessions, sessionId), [liveSessions, sessionId]);
 
   // One subscription covers every child: per-session hooks would multiply
   // store subscriptions by the number of subagents.
   const permissions = useDirectorySync(React.useCallback((state: State) => state.permission, []));
   const forms = useDirectorySync(React.useCallback((state: State) => state.form, []));
+  const statusReady = useDirectorySync(
+    React.useCallback((state: State) => state.sessionStatusReady, []),
+    directory ?? undefined,
+  );
+  // The last turn's outcome outlives the live status: a child that went idle
+  // after an error reads as failed, not done. Joined to a string so the
+  // selector stays stable while nothing about these children changes.
+  const failedChildIds = useGlobalSessionStatusStore(React.useCallback((state) => children
+    .filter((child) => state.observedById.get(child.id)?.outcome === 'failed')
+    .map((child) => child.id)
+    .join('\n'), [children]));
 
   const openContextPanelTab = useUIStore((state) => state.openContextPanelTab);
   const setCurrentSession = useSessionUIStore((state) => state.setCurrentSession);
@@ -94,10 +84,10 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
   }, [children.length, setSectionExpanded]);
 
   // Same branch the transcript's Task tool takes: surfaces that cannot host an
-  // embedded panel navigate to the child session instead of opening a tab.
+  // side panel navigate to the child session instead of opening a tab.
   const openChildSession = React.useCallback((childId: string, label: string) => {
     if (!directory) return;
-    if (isEmbeddedSessionChat() || isMobile || isVSCodeRuntime()) {
+    if (isMobile || isVSCodeRuntime()) {
       setCurrentSession(childId, directory);
       return;
     }
@@ -113,39 +103,24 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
 
   if (children.length === 0) return null;
 
-  const workingChildren = children.filter((child) => isWorking(statuses[child.id])).length;
-  const rowState = (childId: string): SubagentState => subagentState(
-    (permissions[childId]?.length ?? 0) > 0,
-    (forms[childId]?.length ?? 0) > 0,
-    isWorking(statuses[childId]),
-  );
-  // Collapsed, one row speaks for the section. Blockers outrank agent order,
-  // then work; done children never become a preview.
-  const previewChild = children.find((child) => rowState(child.id) === 'permission')
-    ?? children.find((child) => rowState(child.id) === 'question')
-    ?? children.find((child) => rowState(child.id) === 'working');
-  const renderChild = (child: State['session'][number]) => {
-    const label = child.title?.trim() || t('chat.workStatus.subagent.untitled');
-    const state = rowState(child.id);
-    const value = state === 'permission'
-      ? t('chat.workStatus.subagent.needsPermission')
-      : state === 'question'
-        ? t('chat.workStatus.subagent.askedQuestion')
-        : state === 'working'
-          ? t('chat.workStatus.subagent.working')
-          : t('chat.workStatus.subagent.done');
-    return (
-      <SubagentRow
-        key={child.id}
-        label={label}
-        state={state}
-        cost={perChildCost.get(child.id) ?? 0}
-        value={value}
-        onClick={directory ? () => openChildSession(child.id, label) : undefined}
-        ariaLabel={t('chat.workStatus.action.openSubagent', { name: label })}
-      />
-    );
-  };
+  const failedIds = new Set(failedChildIds.split('\n'));
+  const rows = children.map((child) => {
+    const blocked = (permissions[child.id]?.length ?? 0) > 0;
+    const asked = (forms[child.id]?.length ?? 0) > 0;
+    const status = statuses[child.id]?.type;
+    const busy = status === 'busy' || status === 'retry';
+    const failed = !busy && failedIds.has(child.id);
+    const done = !failed && (status === 'idle' || (!status && statusReady && child.directory === directory));
+    return { child, blocked, asked, busy, failed, done, finished: !blocked && !asked && (done || failed) };
+  });
+  // Newest first by creation, never by last activity: an activity order
+  // reshuffled the rows on every step, moving them under the pointer. Finished
+  // rows sink below the unfinished ones but keep the same order among
+  // themselves, so a fully finished list reads exactly as it did at launch.
+  rows.sort((left, right) => (Number(left.finished) - Number(right.finished))
+    || ((right.child.time?.created ?? 0) - (left.child.time?.created ?? 0)));
+
+  const busyChildren = rows.filter((row) => row.busy).length;
 
   return (
     <WorkStatusCollapsibleSection
@@ -153,11 +128,64 @@ export const WorkStatusSubagentsSection: React.FC<Props> = ({ sessionId, directo
       title={t('chat.workStatus.section.subagents')}
       icon="ai-agent"
       defaultExpanded
-      summary={workingChildren > 0 ? `${workingChildren}/${children.length}` : children.length}
-      collapsedContent={previewChild ? renderChild(previewChild) : null}
+      summary={busyChildren > 0 ? `${busyChildren}/${children.length}` : children.length}
     >
       <div className="max-h-56 overflow-y-auto">
-        {children.map(renderChild)}
+        {rows.map(({ child, blocked, asked, busy, failed, done }) => {
+          const label = child.title?.trim() || t('chat.workStatus.subagent.untitled');
+          let icon: IconName = 'time';
+          let iconColor: string | undefined;
+          let statusLabel = '';
+          if (blocked || asked) {
+            icon = 'alert';
+            iconColor = 'var(--status-warning)';
+            statusLabel = t(blocked ? 'chat.workStatus.subagent.needsPermission' : 'chat.workStatus.subagent.askedQuestion');
+          } else if (busy) {
+            icon = 'record-circle';
+            iconColor = 'var(--status-info)';
+            statusLabel = t('chat.workStatus.subagent.working');
+          } else if (failed) {
+            icon = 'close-circle';
+            iconColor = 'var(--status-error)';
+            statusLabel = t('chat.workStatus.subagent.failed');
+          } else if (done) {
+            icon = 'checkbox-circle';
+            iconColor = 'var(--status-success)';
+            statusLabel = t('chat.workStatus.subagent.done');
+          }
+          const childCost = perChildCost.get(child.id) ?? 0;
+          const modelName = getProviderModelDisplayName(
+            providers.find((provider) => provider.id === child.model?.providerID),
+            child.model?.id,
+          );
+          return (
+            <WorkStatusRow
+              key={child.id}
+              onClick={directory ? () => openChildSession(child.id, label) : undefined}
+              ariaLabel={[t('chat.workStatus.action.openSubagent', { name: label }), statusLabel].filter(Boolean).join('. ')}
+              // The smaller status glyph sits centred in the panel's 16px icon
+              // slot, so it lines up under the section icon and the label
+              // starts where every other row's does.
+              leading={(
+                <span className="flex size-4 shrink-0 items-center justify-center">
+                  <Icon name={icon} className="size-3.5" style={iconColor ? { color: iconColor } : undefined} />
+                </span>
+              )}
+              label={label}
+              tooltip={modelName || undefined}
+              value={(
+                <>
+                  {blocked ? (
+                    <WorkStatusValue tone="warning">{t('chat.workStatus.subagent.needsPermission')}</WorkStatusValue>
+                  ) : asked ? (
+                    <WorkStatusValue tone="warning">{t('chat.workStatus.subagent.askedQuestion')}</WorkStatusValue>
+                  ) : busy ? <SubagentDuration sessionId={child.id} /> : null}
+                  {childCost > 0 ? <WorkStatusValue tone="muted">{formatCost(childCost)}</WorkStatusValue> : null}
+                </>
+              )}
+            />
+          );
+        })}
       </div>
     </WorkStatusCollapsibleSection>
   );
